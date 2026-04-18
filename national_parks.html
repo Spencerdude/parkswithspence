@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ParksWithSpence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;1,8..60,300&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#1a1508;--bg2:#120f05;--bg3:#0e0b03;--bg4:#1e1a08;
+  --gold:#c8a84b;--gold2:#f0e4a0;--gold3:#8a7a50;
+  --border:#3a3010;--border2:#4a3e1a;--border3:#2a2008;
+  --text:#e8dfc0;--text2:#a89060;--text3:#7a6a40;--text4:#6a5a30;
+  --green:#7ab84b;--green-bg:#1e2a0e;
+  --serif:'Source Serif 4',Georgia,serif;
+  --display:'Playfair Display',serif;
+  --mono:'Courier Prime',monospace;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--serif);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:54px}
+.nav-brand{font-family:var(--display);font-size:16px;color:var(--gold2);font-weight:700;letter-spacing:0.3px}
+.nav-links{display:flex;gap:4px}
+.nav-btn{padding:6px 16px;border:none;background:transparent;color:var(--text3);font-family:var(--mono);font-size:12px;letter-spacing:0.5px;cursor:pointer;border-radius:2px;transition:all .15s;text-transform:uppercase}
+.nav-btn:hover{color:var(--gold);background:var(--border3)}
+.nav-btn.active{color:var(--gold);background:var(--border3);border-bottom:2px solid var(--gold)}
+
+/* PAGES */
+.page{display:none;padding-top:54px;min-height:100vh}
+.page.active{display:flex;flex-direction:column}
+
+/* ===== MAP PAGE ===== */
+.map-header{padding:20px 32px 16px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.map-header h1{font-family:var(--display);font-size:26px;color:var(--gold2);line-height:1.1}
+.map-header p{font-size:12px;color:var(--text3);font-family:var(--mono);font-style:italic;margin-top:3px}
+.stats-strip{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.stat{text-align:center}
+.stat-num{font-family:var(--display);font-size:20px;color:var(--gold);font-weight:700;line-height:1}
+.stat-lbl{font-size:9px;color:var(--text4);text-transform:uppercase;letter-spacing:1px;margin-top:2px;font-family:var(--mono)}
+.stat-div{width:1px;height:28px;background:var(--border)}
+.prog-wrap{width:80px;height:3px;background:var(--border2);border-radius:2px;margin-top:4px;overflow:hidden}
+.prog-fill{height:100%;background:var(--gold);width:57.1%}
+
+.filter-bar{padding:8px 32px;background:#150e04;border-bottom:1px solid var(--border);display:flex;gap:0;align-items:stretch;flex-wrap:wrap}
+.filter-group{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:4px 0}
+.filter-sep{width:1px;background:var(--border);margin:4px 16px}
+.filter-parent{padding:4px 12px;border-radius:2px;border:1px solid var(--border2);background:transparent;color:var(--text3);font-size:11px;cursor:pointer;font-family:var(--mono);letter-spacing:0.5px;text-transform:uppercase;transition:all .15s;display:flex;align-items:center;gap:5px}
+.filter-parent:hover,.filter-parent.active{background:var(--border3);color:var(--gold);border-color:var(--gold)}
+.filter-children{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.fg-arrow{font-size:9px;transition:transform .15s}
+.filter-parent.open .fg-arrow{transform:rotate(180deg)}
+.fbtn{padding:4px 12px;border-radius:2px;border:1px solid var(--border2);background:transparent;color:var(--text3);font-size:11px;cursor:pointer;font-family:var(--mono);transition:all .15s;letter-spacing:0.5px}
+.fbtn:hover{background:var(--border3);color:var(--gold);border-color:var(--text3)}
+.fbtn.active{background:var(--border3);color:var(--gold);border-color:var(--gold)}
+
+.map-layout{display:flex;flex:1;height:calc(100vh - 160px);overflow:hidden}
+.map-area{flex:1;position:relative;overflow:hidden}
+#map-svg{width:100%;height:100%}
+.state-path{fill:#252015;stroke:var(--border);stroke-width:0.5}
+.park-dot{cursor:pointer;transition:opacity .15s}
+.park-dot.visited{fill:var(--gold)}
+.park-dot.not-visited{fill:#4a4030;stroke:#6a5a30;stroke-width:0.5}
+.park-dot.hidden{opacity:.08;pointer-events:none}
+.park-lbl{font-family:var(--mono);font-size:8.5px;fill:var(--text3);pointer-events:none}
+.park-lbl.visited{fill:var(--gold)}
+.park-lbl.hidden{opacity:0}
+.tooltip{position:absolute;background:var(--bg3);border:1px solid var(--border2);padding:6px 10px;font-size:11px;color:var(--gold);pointer-events:none;font-family:var(--mono);border-radius:2px;opacity:0;transition:opacity .1s;white-space:nowrap;z-index:10}
+
+.side-panel{width:0;overflow:hidden;transition:width .3s ease;background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column}
+.side-panel.open{width:360px}
+.panel-scroll{width:360px;overflow-y:auto;padding:24px 24px 48px;height:100%;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.panel-close{float:right;margin-left:8px;background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;font-family:var(--mono);padding:2px 6px;line-height:1}
+.panel-close:hover{color:var(--gold)}
+.park-title{font-family:var(--display);font-size:19px;color:var(--gold2);font-weight:700;line-height:1.2;padding-right:24px}
+.visited-badge{display:inline-block;margin-top:7px;padding:2px 9px;font-size:9px;font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;border-radius:1px}
+.badge-v{background:var(--border3);color:var(--gold);border:1px solid rgba(200,168,75,.27)}
+.badge-nv{background:var(--bg);color:var(--text4);border:1px solid var(--border)}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:16px 0}
+.icard{background:var(--bg);border:1px solid var(--border3);border-radius:2px;padding:9px 11px}
+.icard-lbl{font-size:8px;text-transform:uppercase;letter-spacing:1px;color:var(--text4);font-family:var(--mono);margin-bottom:3px}
+.icard-val{font-size:12px;color:var(--gold);font-family:var(--mono)}
+.icard-val.muted{color:var(--text3)}
+.verdict-row{display:flex;gap:8px;margin:4px 0 12px}
+.vpill{flex:1;padding:5px 8px;text-align:center;font-size:9px;text-transform:uppercase;letter-spacing:1px;font-family:var(--mono);border-radius:1px;border:1px solid}
+.vpill-yes{background:var(--green-bg);color:var(--green);border-color:rgba(122,184,75,.27)}
+.vpill-no{background:var(--bg);color:var(--text4);border-color:var(--border)}
+.memories-row{display:flex;align-items:center;gap:7px;padding:7px 10px;background:var(--bg);border:1px solid var(--border3);border-radius:2px;margin-bottom:12px}
+.mem-dot{width:7px;height:7px;border-radius:50%}
+.dot-y{background:var(--gold)}
+.dot-n{background:#4a4030}
+.mem-txt{font-size:10px;color:var(--text3);font-family:var(--mono)}
+.section-lbl{font-size:8px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text4);font-family:var(--mono);margin-bottom:6px;margin-top:14px}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.tag{padding:3px 9px;background:var(--bg4);border:1px solid var(--border);font-size:10px;color:var(--text2);font-family:var(--mono);border-radius:1px}
+.category-tag{background:rgba(200,168,75,.08);border-color:rgba(200,168,75,.3);color:var(--gold)}
+.field-notes{background:var(--bg);border-left:3px solid rgba(200,168,75,.3);padding:10px 13px;font-size:12px;color:var(--text2);font-style:italic;line-height:1.65;border-radius:0 2px 2px 0;margin-bottom:10px}
+.must-do-block{background:var(--bg4);border:1px solid rgba(200,168,75,.2);border-radius:2px;padding:12px 13px;margin-bottom:10px}
+.must-do-block .must-do-item{display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;font-size:12px;color:var(--text2)}
+.must-do-block .must-do-item:last-child{margin-bottom:0}
+.checkmark{color:var(--gold);font-family:var(--mono);flex-shrink:0;margin-top:1px;font-size:11px}
+.todo-block{background:var(--bg);border:1px solid var(--border3);border-radius:2px;padding:12px 13px;margin-bottom:10px}
+.todo-item{display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;font-size:12px;color:var(--text3)}
+.todo-item:last-child{margin-bottom:0}
+.todo-bullet{color:var(--text4);font-family:var(--mono);flex-shrink:0;margin-top:1px}
+.park-photo{width:100%;height:160px;object-fit:cover;border-radius:2px;margin-bottom:14px;border:1px solid var(--border)}
+.photo-placeholder{width:100%;height:120px;background:var(--bg4);border:1px solid var(--border3);border-radius:2px;margin-bottom:14px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;color:var(--text4);text-align:center}
+.season-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.season-tag{padding:3px 9px;font-size:10px;font-family:var(--mono);border-radius:1px;border:1px solid}
+.convo-starter{background:rgba(122,184,75,.05);border:1px solid rgba(122,184,75,.2);border-radius:2px;padding:11px 13px;margin-bottom:10px}
+.convo-starter p{font-size:12px;color:var(--text2);line-height:1.6;font-style:italic}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--border2);text-align:center;padding:40px}
+.empty-state p{font-family:var(--mono);font-size:12px;color:var(--text4);line-height:1.7;margin-top:12px}
+
+/* ===== TABLE PAGE ===== */
+.table-page{padding:32px}
+.table-page h2{font-family:var(--display);font-size:22px;color:var(--gold2);margin-bottom:6px}
+.table-page > p{font-size:13px;color:var(--text3);margin-bottom:20px;font-family:var(--mono)}
+.table-controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;align-items:center}
+.tbl-select{background:var(--bg2);border:1px solid var(--border2);color:var(--text2);font-family:var(--mono);font-size:11px;padding:6px 10px;border-radius:2px;cursor:pointer}
+.tbl-search{background:var(--bg2);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 12px;border-radius:2px;width:200px}
+.tbl-search::placeholder{color:var(--text4)}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:2px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:var(--bg3);color:var(--gold3);font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:0.8px;padding:10px 14px;text-align:left;cursor:pointer;border-bottom:1px solid var(--border);white-space:nowrap;user-select:none}
+th:hover{color:var(--gold);background:#0a0803}
+th.sort-asc::after{content:" ↑"}
+th.sort-desc::after{content:" ↓"}
+td{padding:9px 14px;border-bottom:1px solid var(--border3);color:var(--text2);vertical-align:middle}
+tr:hover td{background:rgba(200,168,75,.04)}
+tr:last-child td{border-bottom:none}
+.td-park{color:var(--text);font-weight:600;font-family:var(--serif);white-space:nowrap}
+.td-park.visited-row{color:var(--gold)}
+.pill-yes{display:inline-block;padding:2px 8px;background:var(--green-bg);color:var(--green);border:1px solid rgba(122,184,75,.3);font-size:9px;font-family:var(--mono);border-radius:1px;text-transform:uppercase;letter-spacing:.5px}
+.pill-no{display:inline-block;padding:2px 8px;background:var(--bg);color:var(--text4);border:1px solid var(--border3);font-size:9px;font-family:var(--mono);border-radius:1px;text-transform:uppercase;letter-spacing:.5px}
+.bar-cell{display:flex;align-items:center;gap:8px}
+.vis-bar{height:4px;background:rgba(200,168,75,.15);border-radius:2px;flex:1;min-width:60px;max-width:120px;overflow:hidden}
+.vis-fill{height:100%;background:var(--gold);border-radius:2px}
+.tbl-count{font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:10px}
+
+/* ===== EXPLORE PAGE ===== */
+.explore-page{padding:32px}
+.explore-page h2{font-family:var(--display);font-size:22px;color:var(--gold2);margin-bottom:6px}
+.explore-page > p{font-size:13px;color:var(--text3);margin-bottom:24px;font-family:var(--mono)}
+.category-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:32px}
+.cat-card{background:var(--bg2);border:1px solid var(--border);border-radius:3px;overflow:hidden;cursor:pointer;transition:border-color .15s}
+.cat-card:hover{border-color:var(--border2)}
+.cat-card.expanded{border-color:rgba(200,168,75,.4)}
+.cat-header{padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
+.cat-icon{font-size:20px;margin-right:10px}
+.cat-name{font-family:var(--display);font-size:15px;color:var(--gold2)}
+.cat-count{font-family:var(--mono);font-size:10px;color:var(--text4);margin-top:2px}
+.cat-arrow{color:var(--text4);font-family:var(--mono);transition:transform .2s}
+.cat-card.expanded .cat-arrow{transform:rotate(90deg)}
+.cat-body{display:none;padding:0 16px 14px}
+.cat-card.expanded .cat-body{display:block}
+.cat-park-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border3)}
+.cat-park-row:last-child{border-bottom:none}
+.cat-park-name{font-size:12px;color:var(--text);font-family:var(--serif)}
+.cat-park-name.visited-name{color:var(--gold)}
+.cat-park-stats{display:flex;gap:8px;align-items:center}
+.cat-vis{font-size:10px;color:var(--text4);font-family:var(--mono)}
+.near-me-section{margin-top:8px}
+.near-me-section h3{font-family:var(--display);font-size:17px;color:var(--gold2);margin-bottom:14px}
+.miles-filter{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.miles-filter label{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.miles-filter select{background:var(--bg2);border:1px solid var(--border2);color:var(--text2);font-family:var(--mono);font-size:11px;padding:5px 10px;border-radius:2px}
+.near-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.near-card{background:var(--bg2);border:1px solid var(--border);border-radius:2px;padding:12px 14px}
+.near-name{font-size:13px;color:var(--text);font-family:var(--serif);margin-bottom:4px}
+.near-meta{font-size:10px;color:var(--text4);font-family:var(--mono)}
+
+/* ===== COMPARE PAGE ===== */
+.compare-page{padding:32px}
+.compare-page h2{font-family:var(--display);font-size:22px;color:var(--gold2);margin-bottom:6px}
+.compare-page > p{font-size:13px;color:var(--text3);margin-bottom:24px;font-family:var(--mono)}
+.compare-selects{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:28px;align-items:center}
+.compare-select{background:var(--bg2);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:12px;padding:8px 12px;border-radius:2px;min-width:220px}
+.vs-label{font-family:var(--display);font-size:18px;color:var(--text4);font-style:italic}
+.compare-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:24px;align-items:start}
+.cmp-col{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:20px}
+.cmp-name{font-family:var(--display);font-size:18px;color:var(--gold2);margin-bottom:14px;font-weight:700}
+.cmp-row{display:flex;justify-content:space-between;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--border3);gap:12px}
+.cmp-row:last-child{border-bottom:none}
+.cmp-key{font-size:10px;color:var(--text4);font-family:var(--mono);text-transform:uppercase;letter-spacing:.7px;flex-shrink:0}
+.cmp-val{font-size:12px;color:var(--text2);text-align:right;font-family:var(--mono)}
+.cmp-highlight{color:var(--gold)}
+.vs-divider{display:flex;align-items:center;justify-content:center;padding-top:50px}
+.vs-circle{width:40px;height:40px;border-radius:50%;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:14px;color:var(--text4);font-style:italic}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">ParksWithSpence</div>
+  <div class="nav-links">
+    <button class="nav-btn active" onclick="showPage('map',this)">National Parks Map</button>
+    <button class="nav-btn" onclick="showPage('table',this)">Parks Data</button>
+    <button class="nav-btn" onclick="showPage('explore',this)">Trip Planning</button>
+    <button class="nav-btn" onclick="showPage('compare',this)">Compare</button>
+  </div>
+</nav>
+
+<!-- MAP PAGE -->
+<div class="page active" id="page-map">
+  <div class="map-header">
+    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+      <h1>National Parks Map</h1>
+      <div style="display:flex;align-items:center;gap:9px;padding:6px 14px;background:var(--border3);border-radius:2px;border:1px solid var(--border2)">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase">Spencer's Data</span>
+        <div style="position:relative;width:36px;height:20px;cursor:pointer" onclick="toggleMapSpencer(this)">
+          <div id="map-toggle-track" style="position:absolute;inset:0;border-radius:10px;background:rgba(200,168,75,0.35);border:1px solid rgba(200,168,75,0.3);transition:background .2s"></div>
+          <div id="map-toggle-thumb" style="position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--gold);transform:translateX(16px);transition:transform .2s,background .2s"></div>
+        </div>
+      </div>
+    </div>
+    <div class="stats-strip" id="stats-strip">
+      <div class="stat"><div class="stat-num">36</div><div class="stat-lbl">Visited</div></div>
+      <div class="stat-div"></div>
+      <div class="stat"><div class="stat-num">27</div><div class="stat-lbl">Remaining</div></div>
+      <div class="stat-div"></div>
+      <div class="stat"><div class="stat-num">57%</div><div class="stat-lbl">Complete</div><div class="prog-wrap"><div class="prog-fill"></div></div></div>
+      <div class="stat-div"></div>
+      <div class="stat"><div class="stat-num">21</div><div class="stat-lbl">Would Revisit</div></div>
+    </div>
+  </div>
+  <div class="filter-bar" id="filter-bar">
+    <div class="filter-group" id="fg-spencers">
+      <button class="filter-parent active" id="fp-spencers" onclick="toggleFilterGroup('spencers')">
+        Spencer's Parks <span class="fg-arrow">▾</span>
+      </button>
+      <div class="filter-children" id="fc-spencers">
+        <button class="fbtn active" onclick="setFilter('all',this)">All 63</button>
+        <button class="fbtn" onclick="setFilter('visited',this)">Visited</button>
+        <button class="fbtn" onclick="setFilter('unvisited',this)">To Visit</button>
+        <button class="fbtn" onclick="setFilter('again',this)">Would Return</button>
+      </div>
+    </div>
+    <div class="filter-sep"></div>
+    <div class="filter-group" id="fg-categories">
+      <button class="filter-parent" id="fp-categories" onclick="toggleFilterGroup('categories')">
+        By Landscape <span class="fg-arrow">▾</span>
+      </button>
+      <div class="filter-children" id="fc-categories" style="display:none">
+        <button class="fbtn" onclick="setFilter('desert',this)">Desert</button>
+        <button class="fbtn" onclick="setFilter('mountains',this)">Mountains</button>
+        <button class="fbtn" onclick="setFilter('coastal',this)">Coastal</button>
+        <button class="fbtn" onclick="setFilter('water',this)">Water</button>
+        <button class="fbtn" onclick="setFilter('volcanic',this)">Volcanic</button>
+        <button class="fbtn" onclick="setFilter('wildlife',this)">Wildlife</button>
+        <button class="fbtn" onclick="setFilter('caves',this)">Caves</button>
+        <button class="fbtn" onclick="setFilter('cultural',this)">Cultural</button>
+        <button class="fbtn" onclick="setFilter('wetlands',this)">Wetlands</button>
+      </div>
+    </div>
+  </div>
+  <div class="map-layout">
+    <div class="map-area">
+      <div class="tooltip" id="tooltip"></div>
+      <div id="state-banner" style="display:none;position:absolute;top:8px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--border2);padding:5px 14px;font-family:var(--mono);font-size:11px;color:var(--gold);border-radius:2px;z-index:5;pointer-events:none"></div>
+      <svg id="map-svg" viewBox="0 0 960 600" preserveAspectRatio="xMidYMid meet">
+        <rect fill="#1a1508" width="960" height="600"/>
+        <g id="states-g"></g>
+        <g id="topo-g"></g>
+        <g id="state-highlight-g"></g>
+        <g id="parks-g"></g>
+      </svg>
+    </div>
+    <div class="side-panel" id="side-panel">
+      <div class="panel-scroll" id="panel-scroll">
+        <div class="empty-state" id="empty-state">
+          <svg width="44" height="44" viewBox="0 0 44 44" fill="none"><circle cx="22" cy="22" r="19" stroke="#c8a84b" stroke-width="1.2"/><path d="M22 13 L22 22 L27.5 27.5" stroke="#c8a84b" stroke-width="1.2" stroke-linecap="round"/></svg>
+          <p>Click any park marker<br>to read your field notes.<br><span style="color:var(--text4);font-size:10px;margin-top:4px;display:block">Or click a state to see its parks.</span></p>
+        </div>
+        <div id="park-detail" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TABLE PAGE -->
+<div class="page" id="page-table">
+  <div class="table-page">
+    <h2>Park Data Table</h2>
+    <p>All 63 national parks. Click column headers to sort.</p>
+    <div class="table-controls">
+      <input class="tbl-search" type="text" placeholder="Search park..." oninput="filterTable(this.value)">
+      <select class="tbl-select" onchange="filterVisited(this.value)">
+        <option value="all">All Parks</option>
+        <option value="visited">Visited Only</option>
+        <option value="unvisited">Not Visited</option>
+        <option value="again">Would Return</option>
+      </select>
+      <select class="tbl-select" onchange="filterCategory(this.value)">
+        <option value="all">All Categories</option>
+        <option value="Desert">Desert</option>
+        <option value="Mountains">Mountains</option>
+        <option value="Water">Water</option>
+        <option value="Caves">Caves</option>
+        <option value="Wildlife">Wildlife</option>
+        <option value="Coastal">Coastal</option>
+        <option value="Volcanic">Volcanic</option>
+        <option value="Cultural">Cultural</option>
+        <option value="Wetlands">Wetlands</option>
+      </select>
+    </div>
+    <div class="tbl-wrap">
+      <table id="main-table">
+        <thead>
+          <tr>
+            <th onclick="sortTable('name')">Park</th>
+            <th onclick="sortTable('visitors2024')">2024 Visitors</th>
+            <th onclick="sortTable('visited')">Visited</th>
+            <th onclick="sortTable('again')">Return?</th>
+            <th onclick="sortTable('days')">Days</th>
+            <th onclick="sortTable('backcountry')">Backcountry</th>
+            <th onclick="sortTable('category')">Category</th>
+            <th onclick="sortTable('timed')">Timed Entry</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+    <p class="tbl-count" id="tbl-count"></p>
+  </div>
+</div>
+
+<!-- TRIP PLANNING PAGE -->
+<div class="page" id="page-explore">
+  <div class="explore-page">
+    <h2>Trip Planning</h2>
+    <p>Explore parks by landscape type, or enter your city to find parks near you.</p>
+
+    <!-- Location finder -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:20px 24px;margin-bottom:28px;display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end">
+      <div>
+        <div class="section-lbl" style="margin-top:0">Your starting city</div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:6px">
+          <input id="city-input" class="tbl-search" type="text" placeholder="e.g. Denver, CO" style="width:200px">
+          <button class="fbtn active" onclick="geocodeCity()">Find Parks Near Me</button>
+          <span id="geo-status" style="font-family:var(--mono);font-size:11px;color:var(--text3)"></span>
+        </div>
+      </div>
+      <div>
+        <div class="section-lbl" style="margin-top:0">Max distance</div>
+        <select class="tbl-select" id="radius-select" onchange="renderNearMe()" style="margin-top:6px">
+          <option value="300">Under 300 miles</option>
+          <option value="500" selected>Under 500 miles</option>
+          <option value="800">Under 800 miles</option>
+          <option value="1200">Under 1,200 miles</option>
+          <option value="99999">Any distance</option>
+        </select>
+      </div>
+      <div>
+        <div class="section-lbl" style="margin-top:0">Filter</div>
+        <select class="tbl-select" id="near-cat-select" onchange="renderNearMe()" style="margin-top:6px">
+          <option value="all">All categories</option>
+          <option value="Desert">Desert</option>
+          <option value="Mountains">Mountains</option>
+          <option value="Coastal">Coastal</option>
+          <option value="Water">Water</option>
+          <option value="Volcanic">Volcanic</option>
+          <option value="Wildlife">Wildlife</option>
+          <option value="Caves">Caves</option>
+          <option value="Cultural">Cultural</option>
+          <option value="Wetlands">Wetlands</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="near-results" style="margin-bottom:32px"></div>
+
+    <!-- Category browser -->
+    <div style="border-top:1px solid var(--border);padding-top:24px;margin-top:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:6px">
+        <h3 style="font-family:var(--display);font-size:17px;color:var(--gold2)">Browse by Landscape</h3>
+        <label style="display:flex;align-items:center;gap:9px;cursor:pointer;user-select:none">
+          <span style="font-family:var(--mono);font-size:11px;color:var(--text3)">Show Spencer's data</span>
+          <div style="position:relative;width:36px;height:20px" onclick="toggleSpencerData(this)">
+            <div id="toggle-track" style="position:absolute;inset:0;border-radius:10px;background:rgba(200,168,75,0.35);transition:background .2s;border:1px solid rgba(200,168,75,0.3)"></div>
+            <div id="toggle-thumb" style="position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--gold);transform:translateX(16px);transition:transform .2s,background .2s"></div>
+          </div>
+        </label>
+      </div>
+      <p style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-bottom:18px">Click any category to expand all parks within it, ranked by annual visitors.</p>
+      <div class="category-grid" id="cat-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- COMPARE PAGE -->
+<div class="page" id="page-compare">
+  <div class="compare-page">
+    <h2>Side-by-Side Compare</h2>
+    <p>Pick two parks to compare your notes, visitor numbers, and stats.</p>
+    <div class="compare-selects">
+      <select class="compare-select" id="cmp-a" onchange="renderCompare()">
+        <option value="">— Select a park —</option>
+      </select>
+      <span class="vs-label">vs</span>
+      <select class="compare-select" id="cmp-b" onchange="renderCompare()">
+        <option value="">— Select a park —</option>
+      </select>
+    </div>
+    <div id="compare-result"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+<script>
+// ─── PARK DATA ───────────────────────────────────────────────────────────────
+const PARKS = [
+  {name:"Acadia",lat:44.35,lng:-68.21,visited:false,visitors2024:3961661,miles:2600,car:true,timed:true,backcountry:true,days:"2",memories:null,again:null,attractions:"Wildlife, Coastal Landscape",category:"Coastal",mustDo:[],todo:["Cadillac Mountain sunrise (book timed entry in advance)","Carriage Road biking loop","Thunder Hole at high tide","Jordan Pond loop for popovers"],bestSeason:"Sep–Oct",convo:"Acadia is America's most visited park east of the Mississippi—and for good reason. The combination of rocky coastline, forested mountains, and the iconic Cadillac Mountain sunrise makes it genuinely special. Come in September or October to beat summer crowds."},
+  {name:"American Samoa",lat:-14.25,lng:-170.68,visited:false,visitors2024:12561,miles:5300,car:false,timed:false,backcountry:false,days:"1",memories:null,again:null,attractions:"Coastal Landscape, Snorkeling",category:"Coastal",mustDo:[],todo:["Snorkel the coral reefs near Ofu beach","Hike to Mount Alava for panoramic views"],bestSeason:"May–Oct (dry season)",convo:"The most remote and least visited of all 63 parks, American Samoa is a genuine bucket-list adventure. The coral reef system here rivals anything in the Caribbean."},
+  {name:"Arches",lat:38.68,lng:-109.57,visited:true,visitors2024:1466528,miles:200,car:true,timed:false,backcountry:true,days:"3",memories:true,again:true,attractions:"Delicate Arch",category:"Desert",mustDo:["Delicate Arch hike at sunset","Devils Garden loop trail","Landscape Arch (world's longest natural arch)"],todo:["Fiery Furnace guided hike (permit required)","Primitive trail in Devils Garden","Night sky photography — one of the best spots in Utah"],bestSeason:"Mar–May, Sep–Oct",convo:"Arches is the quintessential Utah park — over 2,000 natural arches packed into 76,000 acres. Delicate Arch is non-negotiable, but the real magic is Devils Garden. Needs a timed entry permit in peak season. 200 miles from home makes this an easy day trip."},
+  {name:"Badlands",lat:43.86,lng:-102.34,visited:false,visitors2024:1094245,miles:700,car:true,timed:false,backcountry:null,days:"1-2",memories:null,again:null,attractions:"",category:"Desert",mustDo:[],todo:["Drive the Badlands Loop Road at dawn or dusk","Hike the Notch Trail for canyon views","Watch for bison, prairie dogs, and pronghorn","Camp overnight for the dark skies"],bestSeason:"May–Jun, Sep",convo:"The Badlands are an otherworldly landscape of eroded buttes and spires. It's a quick in-and-out park, but the scenery is genuinely striking, especially at golden hour. Pairs perfectly with Wind Cave and Mount Rushmore for a South Dakota road trip."},
+  {name:"Big Bend",lat:29.25,lng:-103.25,visited:true,visitors2024:561458,miles:1100,car:true,timed:false,backcountry:false,days:"1",memories:true,again:false,attractions:"Rio Grande, Stargazing",category:"Desert",mustDo:["Boquillas border crossing into Mexico (bring passport)","Santa Elena Canyon hike along the Rio Grande"],todo:[],bestSeason:"Oct–Apr",convo:"Big Bend is one of the most remote and underrated parks in the country. The Rio Grande section near Santa Elena Canyon is spectacular, and the Boquillas crossing into Mexico is a truly unique experience. The Chisos Basin felt underwhelming — the real magic is down by the river. The park has the darkest skies in the lower 48."},
+  {name:"Biscayne",lat:25.48,lng:-80.43,visited:true,visitors2024:512213,miles:2600,car:true,timed:false,backcountry:false,days:"1",memories:true,again:true,attractions:"Snorkeling",category:"Coastal",mustDo:["Snorkel or dive the protected coral reef","Boat tour to Elliott Key"],todo:["Return for Dry Tortugas loop — Biscayne first, ferry out, fly back","Kayak through mangroves"],bestSeason:"Dec–Apr",convo:"95% of Biscayne is underwater — it's a snorkeler and diver's paradise, with some of the healthiest coral reefs in South Florida. The snorkeling trip here was incredible. If you're already heading to Dry Tortugas, Biscayne is a natural add-on."},
+  {name:"Black Canyon of the Gunnison",lat:38.57,lng:-107.72,visited:true,visitors2024:335862,miles:350,car:true,timed:false,backcountry:false,days:"1",memories:true,again:false,attractions:"Hiking",category:"Mountains",mustDo:["South Rim Drive overlooks","Warner Point Nature Trail"],todo:[],bestSeason:"May–Oct",convo:"One of Colorado's most dramatic landscapes — the Gunnison River has carved a canyon so deep and narrow that some sections receive only 33 minutes of sunlight per day. The rim views are stunning, and if you want an adventure, you can hike down into the canyon (it's an unmaintained scramble, not a trail). Once is enough unless you want to do the inner canyon."},
+  {name:"Bryce Canyon",lat:37.59,lng:-112.18,visited:true,visitors2024:2498075,miles:250,car:true,timed:false,backcountry:true,days:"2",memories:false,again:true,attractions:"Hiking",category:"Desert",mustDo:["Navajo Loop + Queens Garden Trail combination","Sunrise at Bryce Point","Stargazing — one of the best dark sky parks"],todo:["Fairyland Loop (less crowded full-day hike)","Backpack the Under-the-Rim Trail"],bestSeason:"May–Jun, Sep–Oct",convo:"Bryce Canyon isn't actually a canyon — it's an amphitheater of thousands of hoodoos, those flame-colored rock spires that turn pink and orange at dawn. The Navajo Loop trail drops you right into them. It's genuinely unlike anywhere else on earth, and it's only 250 miles from home."},
+  {name:"Canyonlands",lat:38.20,lng:-109.93,visited:true,visitors2024:818492,miles:200,car:true,timed:false,backcountry:true,days:"3",memories:true,again:true,attractions:"Hiking, Biking, Canyoneering",category:"Desert",mustDo:["White Rim Trail (4WD or mountain bike, multi-day)","Mesa Arch at sunrise","Grand View Point overlook"],todo:["Needles District (completely different feel than Island in the Sky)","Maze District (requires serious backcountry experience)"],bestSeason:"Mar–May, Sep–Nov",convo:"Canyonlands is the most rugged and least-visited of the Utah Big Five — and arguably the most rewarding. The White Rim Trail is one of the great mountain bike routes in the world. The Needles and Maze districts are almost completely different parks — worth multiple trips. 200 miles from home and criminally underrated."},
+  {name:"Capitol Reef",lat:38.09,lng:-111.15,visited:true,visitors2024:1422490,miles:200,car:true,timed:false,backcountry:true,days:"2",memories:true,again:true,attractions:"Hiking, Canyoneering",category:"Desert",mustDo:["Hickman Bridge Trail","Slot canyon hike in Grand Wash","Pick fruit in the historic Fruita Orchards (in season)"],todo:["Cohab Canyon + Frying Pan Trail loop","Cathedral Valley (requires high clearance — spectacular)","Surprise Canyon overnight"],bestSeason:"Apr–Jun, Sep–Oct",convo:"Genuinely the most underrated park in Utah — everyone rushes past it on the way to Zion or Arches, but Capitol Reef has incredible slot canyons, scenic drives, and almost no crowds. The Waterpocket Fold is one of the most significant geologic features on the continent. My personal sleeper pick for anyone doing a Utah road trip."},
+  {name:"Carlsbad Caverns",lat:32.17,lng:-104.44,visited:true,visitors2024:460474,miles:900,car:true,timed:true,backcountry:false,days:"1",memories:true,again:false,attractions:"Caving",category:"Caves",mustDo:["Natural Entrance route (1.25 miles winding down)","The Big Room (largest cave chamber in North America)"],todo:[],bestSeason:"Year-round (underground stays 56°F)",convo:"One of the most jaw-dropping geological experiences in the country. The Natural Entrance drops you 750 feet underground through a winding cave passage, and the Big Room is simply enormous — it would fit 6 football fields. The bat flight at sunset (half a million bats) is unforgettable. One full day is all you need."},
+  {name:"Channel Islands",lat:34.01,lng:-119.78,visited:false,visitors2024:262581,miles:750,car:false,timed:false,backcountry:null,days:"2",memories:null,again:null,attractions:"Snorkeling, Hiking",category:"Coastal",mustDo:[],todo:["Kayak sea caves on Santa Cruz Island","Snorkel the kelp forests","Camp overnight on Santa Rosa Island"],bestSeason:"Aug–Oct (calmest seas)",convo:"Called the 'Galapagos of North America' — Channel Islands is only accessible by boat or small plane, which keeps the crowds away. The marine life, giant sea caves, and endemic species make it genuinely unique. Anacapa Island is the easiest day trip from Ventura."},
+  {name:"Congaree",lat:33.78,lng:-80.78,visited:false,visitors2024:242049,miles:2100,car:true,timed:false,backcountry:false,days:"1",memories:null,again:null,attractions:"Hiking",category:"Wetlands",mustDo:[],todo:["Boardwalk Loop Trail through old-growth floodplain forest","Kayak or canoe Cedar Creek","Visit during firefly synchronization (May–June)"],bestSeason:"Nov–Mar (fewer bugs, lower water)",convo:"Often ranked last in popularity, Congaree protects the largest intact expanse of old-growth bottomland hardwood forest in the US. The trees here are among the tallest in eastern North America. Not a glamorous park, but the firefly synchronization in May is one of the most magical natural events in America."},
+  {name:"Crater Lake",lat:42.94,lng:-122.10,visited:true,visitors2024:504942,miles:700,car:true,timed:false,backcountry:false,days:"1",memories:true,again:false,attractions:"Hiking, Boat Rides",category:"Volcanic",mustDo:["Rim Drive overlooks","Cleetwood Cove Trail down to the lake (only legal access)"],todo:[],bestSeason:"Jul–Sep (road often snowbound otherwise)",convo:"The deepest lake in the United States and one of the bluest things you'll ever see — the color is so saturated it looks fake in photos but is even more intense in person. The Cleetwood Trail hike down to the water is the only legal way to access the lake shore. If I went back, I'd take the Wizard Island boat tour."},
+  {name:"Cuyahoga Valley",lat:41.24,lng:-81.55,visited:false,visitors2024:2912454,miles:1800,car:true,timed:false,backcountry:false,days:"1",memories:null,again:null,attractions:"Hiking",category:"Water",mustDo:[],todo:["Brandywine Falls trail","Ride the Cuyahoga Valley Scenic Railroad","Ledges Trail loop"],bestSeason:"May–Oct",convo:"A surprisingly beautiful park tucked between Cleveland and Akron, Ohio. The Cuyahoga Valley protects 33 miles of river corridor with waterfalls, forests, and farmland. Not a bucket-list park, but a solid day trip if you're in the region."},
+  {name:"Death Valley",lat:36.24,lng:-116.82,visited:true,visitors2024:1440484,miles:550,car:true,timed:false,backcountry:true,days:"2",memories:true,again:true,attractions:"Hiking, Canyoneering, Heat",category:"Desert",mustDo:["Badwater Basin (lowest point in North America, -282 ft)","Zabriskie Point sunrise","Mosaic Canyon slot canyon hike"],todo:["The Racetrack (sailing stones) — requires high clearance","Telescope Peak summit (10,000 ft above Badwater)","Return in winter for wildflower super bloom (if year is right)"],bestSeason:"Nov–Mar (spring for wildflowers)",convo:"The hottest, driest, and lowest place in North America — and somehow incredibly beautiful. The landscape is constantly shifting: sand dunes, salt flats, volcanic craters, slot canyons. Badwater Basin at sunrise is one of the most surreal experiences I've had in a park. Only visit in spring or fall — summer temperatures routinely exceed 120°F."},
+  {name:"Denali",lat:63.33,lng:-150.50,visited:true,visitors2024:466227,miles:3000,car:true,timed:false,backcountry:true,days:"2",memories:true,again:true,attractions:"Hiking",category:"Mountains",mustDo:["Bus along Denali Park Road (only way to see the park)","Hike off-trail in the tundra"],todo:["Return on a clear day to actually see Denali peak","Wonder Lake overnight camp","Flightseeing tour around the summit"],bestSeason:"Jun–Aug",convo:"Alaska's crown jewel — a wild, roadless wilderness the size of Massachusetts, with the highest peak in North America at 20,310 feet. The catch: Denali is cloud-covered about 60% of the time. I didn't see the mountain, but the tundra hiking and wildlife (bears, moose, caribou) were still phenomenal. Worth the return trip on a clear day."},
+  {name:"Dry Tortugas",lat:24.63,lng:-82.87,visited:false,visitors2024:84873,miles:2800,car:false,timed:false,backcountry:false,days:"1-2",memories:null,again:null,attractions:"Snorkeling",category:"Coastal",mustDo:[],todo:["Ferry from Key West and snorkel around Fort Jefferson","Camp overnight on the island (advance reservation required)","Dive the wreck of the USS Winfield Scott"],bestSeason:"Dec–Apr",convo:"70 miles offshore from Key West with no bridge — only accessible by ferry or seaplane. The water is crystal clear turquoise and the snorkeling around the massive 19th-century Fort Jefferson is extraordinary. The overnight camp puts you in one of the most remote spots in the National Park System. On the future list when I return to South Florida."},
+  {name:"Everglades",lat:25.39,lng:-80.93,visited:true,visitors2024:741983,miles:2550,car:true,timed:false,backcountry:true,days:"2",memories:true,again:true,attractions:"Boat Rides, Wildlife",category:"Wetlands",mustDo:["Shark Valley tram road bike ride (15-mile loop, incredible wildlife)","Airboat tour","Pa-hay-okee Overlook for the famous 'river of grass'"],todo:["Flamingo Bay and southern Everglades section","Overnight canoe trip through the backcountry waterway","Anhinga Trail during bird nesting season"],bestSeason:"Dec–Apr (dry season, wildlife concentrated)","convo":"The largest subtropical wilderness in the US — 1.5 million acres of sawgrass prairie, mangrove forests, and marine estuary. The Shark Valley bike loop is one of the best wildlife experiences I've had anywhere: alligators every 20 feet, roseate spoonbills, and endless birds. Plan around the dry season for the best wildlife concentration."},
+  {name:"Gates of the Arctic",lat:67.78,lng:-153.30,visited:false,visitors2024:11907,miles:3300,car:false,timed:false,backcountry:true,days:"3",memories:null,again:null,attractions:"Backpacking, Whitewater Rafting",category:"Wildlife",mustDo:[],todo:["Fly-in float trip on the North Fork of the Koyukuk","Multi-day backpacking traverse","Watch for caribou migration (large herds in summer)"],bestSeason:"Jun–Aug",convo:"No roads, no trails, no facilities. The most remote national park in the United States sits entirely above the Arctic Circle. You fly in by small plane and navigate by map. Fewer than 12,000 people visit per year — it's a true wilderness expedition, not a park visit. For serious adventurers only."},
+  {name:"Gateway Arch",lat:38.62,lng:-90.19,visited:false,visitors2024:2563052,miles:1400,car:true,timed:false,backcountry:false,days:"1",memories:null,again:null,attractions:"Arch",category:"Cultural",mustDo:[],todo:["Ride the tram to the top of the 630-foot arch","Museum of Westward Expansion underground"],bestSeason:"Year-round",convo:"The tallest man-made monument in the Western Hemisphere, the Gateway Arch is one of America's most iconic landmarks. The tram ride to the top in those tiny pod cars is a fun, slightly claustrophobic experience. A half-day park."},
+  {name:"Glacier",lat:48.69,lng:-113.72,visited:false,visitors2024:3208755,miles:700,car:true,timed:false,backcountry:true,days:"3",memories:null,again:null,attractions:"Hiking, Backpacking, Scenic Drives",category:"Mountains",mustDo:[],todo:["Going-to-the-Sun Road drive (one of the great American drives)","Highline Trail — most iconic hike in the park","Grinnell Glacier hike before the glaciers disappear","Backcountry permit and multi-night backpack"],bestSeason:"Jul–Aug (road open)",convo:"Often called America's most scenic park — and it's hard to argue. The Going-to-the-Sun Road is one of the most spectacular drives on the continent. The bad news: there are only around 25 glaciers left (down from 150 in 1910) and they're disappearing fast. Timed entry permits required. 700 miles from home — put this on the list soon."},
+  {name:"Glacier Bay",lat:58.50,lng:-137.00,visited:false,visitors2024:736282,miles:2000,car:false,timed:false,backcountry:false,days:"1",memories:null,again:null,attractions:"Ferry Rides, Glacier Exploring",category:"Water",mustDo:[],todo:["Boat tour up the West Arm to see calving glaciers","Kayak among icebergs in Johns Hopkins Inlet","Watch for humpback whales and orcas"],bestSeason:"Jun–Aug",convo:"Glacier Bay is a living laboratory — just 250 years ago it was completely covered in ice. Today you can kayak through a fjord and watch ancient glaciers calve icebergs directly into the ocean. Most visitors arrive by cruise ship, but the small-boat experience is extraordinary."},
+  {name:"Grand Canyon",lat:36.10,lng:-112.11,visited:true,visitors2024:4919163,miles:500,car:true,timed:false,backcountry:true,days:"2",memories:false,again:true,attractions:"Hiking, Scenic Views",category:"Desert",mustDo:["Rim Trail for views","Bright Angel Trail descent (even just a mile or two)"],todo:["Rim-to-Rim — South Kaibab down, North Kaibab up (3-day backpack)","Havasu Falls side trip","Helicopter or rafting trip through the canyon"],bestSeason:"Mar–May, Sep–Nov",convo:"The Grand Canyon is legitimately one of the seven natural wonders of the world, and somehow it still exceeds expectations. At 277 miles long and a mile deep, no photo comes close. The rim views are incredible but the real experience is going inside — even a short Bright Angel descent transforms how you see it. Planning to do the full Rim-to-Rim."},
+  {name:"Grand Teton",lat:43.73,lng:-110.80,visited:true,visitors2024:3628222,miles:300,car:true,timed:false,backcountry:true,days:"3",memories:true,again:true,attractions:"Hiking, Backpacking",category:"Mountains",mustDo:["Taggart Lake + Bradley Lake loop","Jenny Lake ferry + Inspiration Point hike","Snake River scenic float"],todo:["Death Canyon + Static Peak Divide overnight loop","Grand Teton summit climb (technical, requires guide)","Phelps Lake loop via Death Canyon"],bestSeason:"Jul–Sep",convo:"One of my favorite parks anywhere. The Teton Range rises almost 7,000 feet directly from the valley floor with no foothills — it's the sharpest mountain profile in North America. The combination of world-class hiking, pristine alpine lakes, and wildlife is hard to beat. Jenny Lake is stunning and the backcountry here is exceptional."},
+  {name:"Great Basin",lat:38.98,lng:-114.30,visited:true,visitors2024:152068,miles:200,car:true,timed:false,backcountry:true,days:"2",memories:false,again:true,attractions:"Stargazing, Hiking, Backpacking",category:"Mountains",mustDo:["Lehman Caves tour","Wheeler Peak summit hike (13,063 ft)"],todo:["Overnight at Wheeler Peak campground for stargazing","Baker Lake backcountry loop","Spring wildflower hike (often spectacular)"],bestSeason:"Jun–Sep",convo:"Nevada's only national park and one of the great hidden gems — only 150 miles from home and almost always uncrowded. Lehman Caves is one of the best cave systems in the NPS. The Wheeler Peak summit offers 360-degree views across five states. The dark skies here are among the best on the continent. I'll be back."},
+  {name:"Great Sand Dunes",lat:37.73,lng:-105.51,visited:false,visitors2024:437661,miles:500,car:true,timed:false,backcountry:false,days:"1",memories:null,again:null,attractions:"Sandboarding",category:"Desert",mustDo:[],todo:["Rent a sandboard or sled and ride the dunes","Wade through Medano Creek (seasonal — spring runoff)","High Dune summit hike for views","Star Dune overnight backpack (highest dune in North America)"],bestSeason:"Apr–Jun, Sep–Oct",convo:"The tallest sand dunes in North America, sitting incongruously at the base of the Sangre de Cristo Mountains. The combination of a seasonal creek you wade through to reach the dunes, plus the mountains as a backdrop, is genuinely surreal. Sandboarding is a blast. An easy add-on to any Colorado parks trip."},
+  {name:"Great Smoky Mountains",lat:35.61,lng:-83.53,visited:true,visitors2024:12191834,miles:1850,car:true,timed:false,backcountry:false,days:"2",memories:true,again:false,attractions:"Hiking, Scenic Drives",category:"Mountains",mustDo:["Clingmans Dome (highest point in Appalachians, 6,643 ft)","Alum Cave Trail"],todo:[],bestSeason:"Apr–May (wildflowers), Sep–Oct (fall color)",convo:"The most visited national park in the country by a wide margin — partly because it straddles the Virginia/Tennessee border near major population centers, and partly because it's free. It's genuinely beautiful, especially in fall color or wildflower season, but nothing here feels like a must-do compared to western parks. Good for families, but I wouldn't make it a primary destination from out west."},
+  {name:"Guadalupe Mountains",lat:31.92,lng:-104.87,visited:true,visitors2024:226134,miles:900,car:true,timed:false,backcountry:false,days:"0.5",memories:true,again:false,attractions:"Hiking",category:"Mountains",mustDo:["Guadalupe Peak hike (highest point in Texas, 8,749 ft)"],todo:[],bestSeason:"Mar–May, Sep–Nov",convo:"Texas's highest mountain and a Permian Reef fossil — geologically fascinating, visually stark. The Guadalupe Peak hike is a solid 8.4-mile round trip with great views into White Sands. I found the park a bit anticlimactic, honestly. Best combined with Carlsbad Caverns nearby for a 2-park Texas road trip."},
+  {name:"Haleakalā",lat:20.72,lng:-156.15,visited:true,visitors2024:732477,miles:3950,car:true,timed:true,backcountry:true,days:"1-2",memories:true,again:true,attractions:"Hiking, Volcanoes",category:"Volcanic",mustDo:["Summit sunrise — literally the best sunrise of my life (book timed entry weeks in advance)","Sliding Sands Trail into the crater","Bamboo Forest waterfall hikes in the lower Kīpahulu district"],todo:["Summit-to-sea hike (Sliding Sands down, Halemau'u up — full day)","Maui's best stargazing up top after the sunset crowds leave"],bestSeason:"Year-round; sunrise is year-round but often clearer Oct–Apr",convo:"The summit of Haleakalā sits above the clouds at 10,023 feet — and watching the sun rise over a sea of clouds from the crater rim is genuinely one of the most breathtaking things I've ever seen. The crater itself looks like a moonscape. The lower Kīpahulu section has completely different terrain — waterfalls, pools, and bamboo forest. Worth booking both. The sunrise timed entry books out weeks in advance."},
+  {name:"Hawai'i Volcanoes",lat:19.43,lng:-155.26,visited:false,visitors2024:1433593,miles:3850,car:true,timed:false,backcountry:null,days:"1-2",memories:null,again:null,attractions:"Volcano Watching, Hiking",category:"Volcanic",mustDo:[],todo:["Crater Rim Drive and Kilauea Overlook","Thurston Lava Tube walk","Chain of Craters Road down to the coast (lava fields)","Check for active lava flow — changes constantly"],bestSeason:"Year-round; check eruption status before visiting",convo:"One of the most active volcanic landscapes on Earth — Kīlauea has been erupting almost continuously since 1983. The ability to witness genuine volcanism, walk through lava tubes, and stand at the edge of a caldera is extraordinary. The park changes constantly depending on eruption activity. Call ahead or check the USGS website."},
+  {name:"Hot Springs",lat:34.51,lng:-93.05,visited:false,visitors2024:2461812,miles:1450,car:true,timed:false,backcountry:false,days:"1",memories:null,again:null,attractions:"Hot Springs",category:"Cultural",mustDo:[],todo:["Bathe in a historic Bathhouse Row spa","Hot Springs Mountain Tower overlook","Ouachita Trail for a hike"],bestSeason:"Year-round",convo:"The smallest national park and one of the oldest — established as a federal reservation in 1832. Bathhouse Row is a beautiful collection of Gilded Age spa buildings along Central Avenue. It's more of a historic town experience than a nature park, but the thermal waters are genuinely therapeutic."},
+  {name:"Indiana Dunes",lat:41.65,lng:-87.05,visited:false,visitors2024:2705209,miles:1450,car:true,timed:false,backcountry:false,days:"1",memories:null,again:null,attractions:"Sandboarding",category:"Coastal",mustDo:[],todo:["The 3 Dunes Challenge (hike 3 dunes in 90 minutes for a patch)","West Beach for Lake Michigan swimming","Cowles Bog Trail for birding"],bestSeason:"May–Sep",convo:"Sandwiched between Chicago and Michigan City, Indiana Dunes is a surprisingly diverse park — tallgrass prairie, bogs, forests, and Lake Michigan shoreline, all within an hour of Chicago. It's more of a local recreation park than a destination, but worth it if you're in the region."},
+  {name:"Isle Royale",lat:48.10,lng:-88.55,visited:false,visitors2024:28806,miles:1600,car:false,timed:false,backcountry:true,days:"3-4",memories:null,again:null,attractions:"Wilderness, Hiking, Backpacking, Scuba Diving",category:"Water",mustDo:[],todo:["Multi-day backpack — Greenstone Ridge Trail (40 miles end-to-end)","Scuba dive the 3 historic shipwrecks (world-class freshwater diving)","Watch for moose (highest density in the lower 48)","Rock Harbor lodge for a more comfortable visit"],bestSeason:"Jun–Sep (ferry season only)",convo:"Isle Royale gets fewer visitors per year than Yellowstone gets on a busy weekend — and for good reason. Only accessible by ferry or seaplane from Michigan, it's a genuine wilderness island. The backpacking is outstanding, the shipwreck diving is some of the best in North America, and the wolf-moose ecosystem is one of the most studied predator-prey relationships in science."},
+  {name:"Joshua Tree",lat:33.87,lng:-115.90,visited:true,visitors2024:3257732,miles:650,car:true,timed:false,backcountry:false,days:"1",memories:true,again:false,attractions:"Climbing, Hiking",category:"Desert",mustDo:["Skull Rock Nature Trail","Keys View overlook at sunset"],todo:[],bestSeason:"Oct–Apr",convo:"The park sits at the meeting point of two desert ecosystems — the Mojave and Colorado — giving it a strange, otherworldly landscape. The twisted Joshua trees and giant boulder piles make for great climbing and photography. I was a bit underwhelmed, but I think a winter or spring visit would change that — the wildflower season can be spectacular, and the bouldering is world-class."},
+  {name:"Katmai",lat:58.50,lng:-154.00,visited:false,visitors2024:33432,miles:3300,car:false,timed:false,backcountry:true,days:"2-3",memories:null,again:null,attractions:"Bear Watching, Hiking",category:"Wildlife",mustDo:[],todo:["Brooks Falls in July/September to watch brown bears catch sockeye salmon — one of the great wildlife spectacles on earth","Fly-in day trip from Anchorage (affordable float planes)","Valley of Ten Thousand Smokes hike"],bestSeason:"Jul (bears at falls), Sep (bear viewing before hibernation)",convo:"Katmai is home to one of the largest concentrations of brown bears on Earth — and Brooks Falls in July, when 2,000-pound bears stand in the river catching sockeye salmon mid-leap, is one of the most spectacular wildlife shows anywhere. The webcam at Brooks Falls is the most-watched nature stream in the world. You fly in by float plane from King Salmon. Worth every penny."},
+  {name:"Kenai Fjords",lat:59.92,lng:-149.65,visited:true,visitors2024:405326,miles:3000,car:true,timed:false,backcountry:true,days:"1",memories:false,again:true,attractions:"Whale Watching, Boat Tours, Glaciers",category:"Coastal",mustDo:["Full-day boat tour out to the Northwestern Glacier and wildlife corridor","Harding Icefield Trail hike"],todo:["Return for better weather — overcast on first visit","Extend to 2 days and do the kayak camping trip"],bestSeason:"Jun–Aug",convo:"Kenai Fjords sits on the edge of the largest ice field in the US outside Alaska's interior. The full-day boat tour is one of the great wildlife experiences — humpbacks, orcas, sea otters, puffins, and massive tidewater glaciers calving directly into the ocean. I'll go back for better weather and a kayaking extension."},
+  {name:"Kings Canyon",lat:36.89,lng:-118.55,visited:true,visitors2024:708697,miles:800,car:true,timed:false,backcountry:true,days:"2-3",memories:true,again:true,attractions:"Backcountry Camping, Backpacking",category:"Mountains",mustDo:["Mist Falls Trail (8 miles round trip, one of the great Sierra hikes)","Kings Canyon Scenic Byway drive to Roads End","Zumwalt Meadow loop"],todo:["Rae Lakes Loop (5-day backpack permit — top 3 Sierra hikes)","Connect to John Muir Trail for a longer traverse","General Grant Tree — the Nation's Christmas Tree"],bestSeason:"Jun–Sep",convo:"My favorite national park. Deeper than the Grand Canyon, less visited than Yosemite, and just as spectacular. Mist Falls blew me away — the hike follows a roaring river through granite canyon walls. The Rae Lakes Loop is on my bucket list as one of the great backpacking routes in America. Go here instead of Yosemite if you want the scenery without the crowds."},
+  {name:"Kobuk Valley",lat:66.90,lng:-159.12,visited:false,visitors2024:14960,miles:3500,car:false,timed:false,backcountry:true,days:"2",memories:null,again:null,attractions:"",category:"Wildlife",mustDo:[],todo:["Fly-in float trip on the Kobuk River","See the Great Kobuk Sand Dunes (25 square miles above the Arctic Circle)","Watch for caribou migration across the valley"],bestSeason:"Jun–Aug",convo:"One of the most remote and least-visited parks — Kobuk Valley has no roads, no trails, and no visitor facilities. Most people don't know it has massive sand dunes sitting incongruously in the Arctic. The caribou migration, when hundreds of thousands of animals cross the valley, is one of the great natural spectacles in North America."},
+  {name:"Lake Clark",lat:60.97,lng:-153.42,visited:false,visitors2024:19280,miles:3100,car:false,timed:false,backcountry:true,days:"2-3",memories:null,again:null,attractions:"",category:"Wildlife",mustDo:[],todo:["Bear viewing at Silver Salmon Creek (comparable to Katmai, much less crowded)","Float trip on the Chilikadrotna River","Hike in the Neacola Mountains"],bestSeason:"Jun–Sep",convo:"Alaska's best-kept secret — Lake Clark is often overlooked in favor of Katmai or Denali, but the bear viewing at Silver Salmon Creek rivals anything in the NPS. Virtually no crowds, incredible landscapes spanning volcano, tundra, and fjord, and some of the best sportfishing in the world."},
+  {name:"Lassen Volcanic",lat:40.49,lng:-121.51,visited:true,visitors2024:468428,miles:650,car:true,timed:false,backcountry:false,days:"2",memories:true,again:false,attractions:"",category:"Volcanic",mustDo:["Bumpass Hell — largest hydrothermal area in the park (when open)"],todo:[],bestSeason:"Jul–Sep",convo:"Most of the park was closed for fire damage when I visited, which colored my experience. The hydrothermal features — boiling mud pots, steaming vents, acidic lakes — are genuinely impressive when accessible. That said, Yellowstone does all of this better and bigger. Not worth a special trip unless you're already in Northern California."},
+  {name:"Mammoth Cave",lat:37.19,lng:-86.10,visited:false,visitors2024:686742,miles:1600,car:true,timed:false,backcountry:false,days:"1-2",memories:null,again:null,attractions:"",category:"Caves",mustDo:[],todo:["Grand Avenue tour (4-hour, 4-mile underground walk)","Historic Tour through Gothic Avenue","Wild Cave Tour for an adventurous caving crawl"],bestSeason:"Year-round (underground stays 54°F)",convo:"The longest known cave system in the world — over 400 mapped miles and still being explored. While Carlsbad Caverns might have more dramatic single chambers, Mammoth Cave offers a wider variety of tours from family-friendly walks to strenuous wild caving. A must for anyone who loves caves."},
+  {name:"Mesa Verde",lat:37.18,lng:-108.49,visited:true,visitors2024:563777,miles:300,car:true,timed:false,backcountry:false,days:"1",memories:true,again:false,attractions:"Cliff Dwellings",category:"Cultural",mustDo:["Cliff Palace tour (largest cliff dwelling in North America, ranger-led)","Balcony House tour (ranger-led, involves crawling)"],todo:[],bestSeason:"May–Oct",convo:"The most significant collection of pre-Columbian cliff dwellings in the US — the ancestral Puebloans built entire cities into the cliff faces around 1,200 years ago, then mysteriously abandoned them within a century. The Cliff Palace tour is genuinely awe-inspiring. It's a one-and-done park, but absolutely worth a day trip. 300 miles from home."},
+  {name:"Mount Rainier",lat:46.85,lng:-121.73,visited:true,visitors2024:1782595,miles:900,car:true,timed:false,backcountry:true,days:"3+",memories:true,again:true,attractions:"Backpacking, Hiking",category:"Mountains",mustDo:["Skyline Trail loop from Paradise","Grove of the Patriarchs — ancient old-growth forest"],todo:["Wonderland Trail (93-mile loop around the entire mountain, 10 days)","Camp Muir and summit attempt (requires glacier travel experience)","Spray Park trail for wildflowers"],bestSeason:"Jul–Sep",convo:"The most glaciated peak in the lower 48 — Rainier has more glaciers than any other mountain in the continental US. Paradise meadows in bloom in August are among the most beautiful scenes in any national park. I only had half a day due to smoke, which was a real miss — this park rewards multiple days. The Wonderland Trail circumnavigation is on the short list."},
+  {name:"New River Gorge",lat:38.07,lng:-81.08,visited:true,visitors2024:1846019,miles:1900,car:true,timed:false,backcountry:false,days:"1",memories:true,again:false,attractions:"Whitewater Rafting",category:"Water",mustDo:["Grandview Rim Trail","New River Gorge Bridge walkway tour"],todo:[],bestSeason:"Apr–Oct",convo:"America's newest national park (designated 2020) protects the deepest and longest river gorge in the Appalachians. The Class III–V whitewater rafting is the main draw. There's not a huge amount else to do, but the gorge views from the rim trails are impressive and the rafting is genuinely excellent."},
+  {name:"North Cascades",lat:48.70,lng:-121.20,visited:false,visitors2024:40351,miles:1000,car:true,timed:false,backcountry:true,days:"3+",memories:null,again:null,attractions:"Mountaineering",category:"Mountains",mustDo:[],todo:["Cascade Pass trail — the most accessible and beautiful hike in the park","Thornton Lakes backpack (3-day)","Climb one of the accessible peaks: Sahale, Storm King"],bestSeason:"Jul–Sep",convo:"The least-visited park in the contiguous 48 states — and one of the most spectacular. The North Cascades are sometimes called 'the American Alps.' Jagged granite peaks, more than 300 glaciers, and almost nobody there. The challenging access keeps crowds away, which is exactly why it rewards those who make the effort."},
+  {name:"Olympic",lat:47.97,lng:-123.50,visited:true,visitors2024:2933095,miles:950,car:true,timed:false,backcountry:true,days:"2-3",memories:true,again:false,attractions:"Mountains, Rain Forest",category:"Coastal",mustDo:["Hoh Rain Forest — temperate rainforest walk","Hurricane Ridge for mountain views","Tide pools at Rialto Beach"],todo:[],bestSeason:"Jul–Sep (drier)",convo:"Olympic is genuinely the most diverse national park in the country — temperate rainforest, glacier-capped mountains, and wild Pacific coastline all in one park. No roads cross from one side to the other. Lake Crescent is gorgeous and the Mount Storm King hike is excellent (steep, requires scrambling at the top). The Hoh Rain Forest is unlike anywhere else in North America."},
+  {name:"Petrified Forest",lat:34.98,lng:-109.78,visited:true,visitors2024:568428,miles:500,car:true,timed:false,backcountry:false,days:"1",memories:true,again:false,attractions:"",category:"Desert",mustDo:["Long Logs Trail and Agate House","Painted Desert Rim overlooks"],todo:[],bestSeason:"Mar–May, Sep–Nov",convo:"225-million-year-old trees turned to solid crystal, scattered across a painted desert. The geology is fascinating — you're walking through a Triassic forest that's now mineralized quartz. It's a half-day to full-day park, and the scenery is unique. There just isn't a huge amount to do besides scenic drives and short walks. A good add-on to a Grand Canyon or Monument Valley road trip."},
+  {name:"Pinnacles",lat:36.49,lng:-121.20,visited:false,visitors2024:362296,miles:850,car:true,timed:false,backcountry:false,days:"1",memories:null,again:null,attractions:"",category:"Mountains",mustDo:[],todo:["High Peaks Trail for talus cave scrambling","Bear Gulch Cave and reservoir trail (seasonal closures for bats)","Watch for California condors — one of best places to see them"],bestSeason:"Oct–May (hot in summer)",convo:"A hidden gem in Central California — towering rock spires, talus caves, and one of the best places in the world to spot California condors in the wild. The park was created partly as a condor recovery area, and sightings are frequent. A long day trip from the Bay Area or a stopover on the Pacific Coast Highway route."},
+  {name:"Redwood",lat:41.30,lng:-124.00,visited:true,visitors2024:404233,miles:900,car:true,timed:false,backcountry:false,days:"2",memories:true,again:true,attractions:"",category:"Coastal",mustDo:["Fern Canyon (Jurassic Park filming location) — walk through fern-covered walls","Prairie Creek Redwoods for the tallest trees","James Irvine Trail through old-growth corridor"],todo:["Kayak the Smith River (clearest river in California)","Del Norte Coast Redwoods overnight backpack","Return to camp again — waking up surrounded by elk is unforgettable"],bestSeason:"May–Sep",convo:"Standing among trees that are 350 feet tall and 2,000 years old is one of the most humbling experiences in any national park. Fern Canyon stopped me in my tracks — 50-foot walls of ferns with a stream running through the floor. Woke up with 20 elk grazing within 15 yards of my tent. Magical. One of my favorites."},
+  {name:"Rocky Mountain",lat:40.40,lng:-105.58,visited:true,visitors2024:4151967,miles:400,car:true,timed:true,backcountry:true,days:"2-3",memories:false,again:true,attractions:"",category:"Mountains",mustDo:["Trail Ridge Road drive (highest continuous paved road in the US, 12,183 ft)","Bear Lake loop and Emerald Lake"],todo:["Longs Peak summit (14,259 ft — 15 miles, serious undertaking)","Sky Pond via Glass Lake trail","Ute Trail across the tundra"],bestSeason:"Jul–Sep",convo:"Colorado's crown jewel and one of the most visited parks in the country — and it earns it. Trail Ridge Road crossing the alpine tundra at over 12,000 feet is a spectacular drive. Longs Peak, one of Colorado's 14ers, is on the list — it's a serious all-day summit attempt but doable. 400 miles from home."},
+  {name:"Saguaro",lat:32.25,lng:-110.50,visited:true,visitors2024:1153219,miles:750,car:true,timed:false,backcountry:false,days:"1",memories:true,again:false,attractions:"",category:"Desert",mustDo:["Cactus Forest Loop Drive at sunset","Signal Hill petroglyphs"],todo:[],bestSeason:"Oct–Apr",convo:"The Sonoran Desert at its most iconic — thousands of giant Saguaro cacti, some over 200 years old and 40 feet tall. It's beautiful in a stark, alien way. The park splits between east and west Tucson units. Definitely a one-and-done unless you're a desert enthusiast — but worth a day if you're in Tucson."},
+  {name:"Sequoia",lat:36.43,lng:-118.68,visited:true,visitors2024:969785,miles:750,car:true,timed:false,backcountry:true,days:"1-2",memories:true,again:true,attractions:"",category:"Mountains",mustDo:["General Sherman Tree (largest living thing by volume on Earth)","Moro Rock for 360-degree Sierra Nevada panorama","Congress Trail loop through the biggest trees"],todo:["Backpack into the backcountry toward Mount Whitney corridor","High Sierra Trail (72 miles to Whitney Portal)","Return for wildflower season"],bestSeason:"Jun–Sep",convo:"Home to the largest trees on Earth by volume — the giant sequoias dwarf everything around them and make you feel genuinely small. General Sherman Tree is 275 feet tall and 36 feet in diameter at the base. The park gets overshadowed by Yosemite but the scenery in the higher elevations is just as spectacular with far fewer people. Mount Whitney — the highest peak in the lower 48 — is accessible from here."},
+  {name:"Shenandoah",lat:38.53,lng:-78.35,visited:true,visitors2024:1669703,miles:2050,car:true,timed:false,backcountry:false,days:"1-2",memories:true,again:false,attractions:"",category:"Mountains",mustDo:["Skyline Drive autumn foliage drive","Old Rag Mountain hike (rock scramble section is excellent)"],todo:[],bestSeason:"Oct (fall color)",convo:"A beautiful Appalachian park that's best in autumn when the foliage turns. Old Rag Mountain is one of the best hikes on the East Coast — the rock scramble section is genuinely fun. Childhood camping memories here. Good park, but nothing that pulls me back from the west."},
+  {name:"Theodore Roosevelt",lat:46.97,lng:-103.45,visited:false,visitors2024:811766,miles:850,car:true,timed:false,backcountry:null,days:"2",memories:null,again:null,attractions:"",category:"Desert",mustDo:[],todo:["Scenic Loop Drive in South Unit for wildlife at sunset","Petrified forest in South Unit","Backcountry horse trail in North Unit"],bestSeason:"May–Jun, Sep",convo:"Named for the president who was transformed by the North Dakota badlands and went on to create the National Park System. The park protects rugged painted badlands and prairies teeming with bison, wild horses, and prairie dogs. Similar to Badlands but more intimate and less visited. Worth combining with a Midwest road trip."},
+  {name:"Virgin Islands",lat:18.34,lng:-64.73,visited:false,visitors2024:388215,miles:4500,car:false,timed:false,backcountry:null,days:"1",memories:null,again:null,attractions:"",category:"Coastal",mustDo:[],todo:["Snorkel Trunk Bay — one of the best beaches in the world","Reef Bay Trail through sugarcane ruins to petroglyphs","Kayak to Hurricane Hole mangroves"],bestSeason:"Dec–Apr",convo:"Two-thirds of tiny St. John island IS the national park — white sand beaches, turquoise water, and coral reefs. Trunk Bay is consistently ranked among the best beaches in the world. Most people visit on day trips from St. Thomas. A Caribbean vacation that happens to be a national park."},
+  {name:"Voyageurs",lat:48.48,lng:-92.84,visited:false,visitors2024:199030,miles:1400,car:true,timed:false,backcountry:true,days:"3",memories:null,again:null,attractions:"",category:"Water",mustDo:[],todo:["Houseboat or motorboat multi-day trip (only way to access much of the park)","Kabetogama Lake kayak camping","Aurora borealis viewing in winter — one of best spots in lower 48"],bestSeason:"Jun–Aug (summer) or Feb–Mar (winter for aurora)","convo":"A water-based park of interconnected lakes on the Minnesota-Canada border — 40% of it is water, and most of it is only accessible by boat. A houseboat trip through the park is one of the most unique national park experiences available. The northern location makes it one of the best spots in the lower 48 for northern lights viewing."},
+  {name:"White Sands",lat:32.78,lng:-106.17,visited:true,visitors2024:759347,miles:800,car:true,timed:false,backcountry:false,days:"0.5",memories:true,again:false,attractions:"",category:"Desert",mustDo:["Interdune Boardwalk at sunset","Sledding the dunes"],todo:[],bestSeason:"Oct–Apr",convo:"Eight square miles of pure white gypsum sand dunes — the largest on Earth. It's an otherworldly landscape that turns pink and orange at sunset. It's a small park and there isn't much to do besides wander the dunes and enjoy the scenery, but the scenery is genuinely surreal. Good for a morning or afternoon, not more. Pairs well with Carlsbad Caverns for a 2-day New Mexico trip."},
+  {name:"Wind Cave",lat:43.56,lng:-103.48,visited:false,visitors2024:632697,miles:650,car:true,timed:false,backcountry:false,days:"1",memories:null,again:null,attractions:"",category:"Caves",mustDo:[],todo:["Natural Entrance tour (oldest cave tour in the NPS)","Boxwork cave features — 95% of world's known boxwork is here","Above ground: bison herd and prairie dog towns"],bestSeason:"Year-round",convo:"One of the world's longest and most complex caves — Wind Cave holds 95% of the world's known boxwork formations, a rare cave mineral feature. Above ground, the mixed-grass prairie is home to a historic bison herd that roams freely. A solid half-day underground and half-day above ground park, best combined with Badlands and Mount Rushmore."},
+  {name:"Wrangell–St. Elias",lat:61.70,lng:-142.99,visited:false,visitors2024:81670,miles:2750,car:true,timed:false,backcountry:true,days:"2-3",memories:null,again:null,attractions:"",category:"Mountains",mustDo:[],todo:["Drive the McCarthy Road and hike on Kennicott Glacier","Tour the Kennicott Copper Mine (National Historic Landmark)","Root Glacier hike with crampons"],bestSeason:"Jun–Aug",convo:"The largest national park in the US — larger than Switzerland. It contains 9 of the 16 highest peaks in North America and the largest non-polar icefield in the world. The old Kennicott copper mining town is a perfectly preserved ghost town in the middle of it all. One of the great un-crowded parks. The drive to McCarthy on the gravel road is an adventure in itself."},
+  {name:"Yellowstone",lat:44.43,lng:-110.59,visited:true,visitors2024:4744353,miles:400,car:true,timed:false,backcountry:true,days:"2",memories:true,again:true,attractions:"Old Faithful, Yellowstone Canyon Waterfalls",category:"Volcanic",mustDo:["Old Faithful geyser (plus the Upper Geyser Basin walk)","Grand Prismatic Spring overlook (the photo you've seen everywhere — hike above it)","Grand Canyon of the Yellowstone — Lower Falls view from Artist Point"],todo:["Shoshone Lake backcountry — kayak or canoe to the most remote destination in the lower 48 (next time: kayaks)","Lamar Valley dawn wildlife safari for wolf packs","Backcountry thermal areas away from the boardwalks"],bestSeason:"May–Jun (before summer crowds), Sep (elk rut)",convo:"America's first national park and one of the great wonders of the world — a volcanic hotspot with more geysers than anywhere else on Earth. Old Faithful is worth seeing, but Grand Prismatic Spring and the Grand Canyon of the Yellowstone are the real showstoppers. The backcountry is extraordinary: Shoshone Lake is the largest backcountry lake in the lower 48. I'll never say no to Yellowstone."},
+  {name:"Yosemite",lat:37.87,lng:-119.54,visited:true,visitors2024:4123897,miles:750,car:true,timed:false,backcountry:true,days:"2",memories:true,again:true,attractions:"Half Dome, Waterfalls",category:"Mountains",mustDo:["Tunnel View — the iconic first look into the valley","Vernal Fall and Nevada Fall loop (Mist Trail)","Valley Floor after a winter snowstorm"],todo:["Half Dome cables — lottery permit required (planning this)","Clouds Rest for a Half Dome view without the Half Dome crowds","High Sierra Camp loop backpack"],bestSeason:"Apr–Jun (waterfalls at peak), Sep–Oct (crowds down)",convo:"Yosemite Valley is genuinely one of the most spectacular places on Earth — 3,000-foot granite walls, towering waterfalls, and a meadow floor that turns pink at sunset. It earns every superlative. The crowds are real (timed entry required now), but nothing diminishes the scale of El Capitan or the view from Glacier Point. Half Dome cables are on the must-do list. The less-visited Tuolumne Meadows in late summer is equally stunning with 10% of the crowds."},
+  {name:"Zion",lat:37.30,lng:-113.05,visited:true,visitors2024:4946592,miles:250,car:true,timed:true,backcountry:true,days:"2",memories:true,again:true,attractions:"Angels Landing, Narrows",category:"Desert",mustDo:["The Narrows bottom-up wade (rent drysuits in shoulder season)","Angels Landing — the most thrilling hike in the NPS (permit required at the chains section)","Emerald Pools trail"],todo:["The Subway — slot canyon hike requiring a permit (this is next)","Zion Traverse — rim-to-rim (18 miles one way)","Left Fork from the top for a full Subway experience"],bestSeason:"Mar–May, Sep–Nov",convo:"Zion is as close to a perfect national park as exists. The canyon walls rise 2,000 feet in blazing red and white Navajo sandstone, the Virgin River cuts through the floor, and the hikes range from casual strolls to life-on-the-line scrambles. Angels Landing is the most exhilarating hike I've done. The Narrows is a full sensory experience — wading knee-deep through the canyon in cold water. The Subway is next on the list."}
+];
+
+// ─── GLOBALS ─────────────────────────────────────────────────────────────────
+let currentFilter = 'all';
+let tableData = [...PARKS];
+let sortKey = 'visitors2024';
+let sortDir = 'desc';
+let tableSearch = '';
+let tableVisitedFilter = 'all';
+let tableCategoryFilter = 'all';
+let projection, pathGen;
+
+// ─── PAGE NAVIGATION ─────────────────────────────────────────────────────────
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'table') renderTable();
+  if (id === 'explore') renderExplore();
+  if (id === 'compare') initCompare();
+}
+
+// ─── MAP ──────────────────────────────────────────────────────────────────────
+// State FIPS → abbreviation map
+const FIPS_TO_STATE = {
+  '01':'AL','02':'AK','04':'AZ','05':'AR','06':'CA','08':'CO','09':'CT','10':'DE',
+  '11':'DC','12':'FL','13':'GA','15':'HI','16':'ID','17':'IL','18':'IN','19':'IA',
+  '20':'KS','21':'KY','22':'LA','23':'ME','24':'MD','25':'MA','26':'MI','27':'MN',
+  '28':'MS','29':'MO','30':'MT','31':'NE','32':'NV','33':'NH','34':'NJ','35':'NM',
+  '36':'NY','37':'NC','38':'ND','39':'OH','40':'OK','41':'OR','42':'PA','44':'RI',
+  '45':'SC','46':'SD','47':'TN','48':'TX','49':'UT','50':'VT','51':'VA','53':'WA',
+  '54':'WV','55':'WI','56':'WY'
+};
+const STATE_NAMES = {
+  'AL':'Alabama','AK':'Alaska','AZ':'Arizona','AR':'Arkansas','CA':'California',
+  'CO':'Colorado','CT':'Connecticut','DE':'Delaware','FL':'Florida','GA':'Georgia',
+  'HI':'Hawaii','ID':'Idaho','IL':'Illinois','IN':'Indiana','IA':'Iowa','KS':'Kansas',
+  'KY':'Kentucky','LA':'Louisiana','ME':'Maine','MD':'Maryland','MA':'Massachusetts',
+  'MI':'Michigan','MN':'Minnesota','MS':'Mississippi','MO':'Missouri','MT':'Montana',
+  'NE':'Nebraska','NV':'Nevada','NH':'New Hampshire','NJ':'New Jersey','NM':'New Mexico',
+  'NY':'New York','NC':'North Carolina','ND':'North Dakota','OH':'Ohio','OK':'Oklahoma',
+  'OR':'Oregon','PA':'Pennsylvania','RI':'Rhode Island','SC':'South Carolina',
+  'SD':'South Dakota','TN':'Tennessee','TX':'Texas','UT':'Utah','VT':'Vermont',
+  'VA':'Virginia','WA':'Washington','WV':'West Virginia','WI':'Wisconsin','WY':'Wyoming'
+};
+// Park → state mapping
+const PARK_STATES = {
+  'Acadia':'ME','American Samoa':'AS','Arches':'UT','Badlands':'SD','Big Bend':'TX',
+  'Biscayne':'FL','Black Canyon of the Gunnison':'CO','Bryce Canyon':'UT',
+  'Canyonlands':'UT','Capitol Reef':'UT','Carlsbad Caverns':'NM','Channel Islands':'CA',
+  'Congaree':'SC','Crater Lake':'OR','Cuyahoga Valley':'OH','Death Valley':'CA',
+  'Denali':'AK','Dry Tortugas':'FL','Everglades':'FL','Gates of the Arctic':'AK',
+  'Gateway Arch':'MO','Glacier':'MT','Glacier Bay':'AK','Grand Canyon':'AZ',
+  'Grand Teton':'WY','Great Basin':'NV','Great Sand Dunes':'CO',
+  'Great Smoky Mountains':'TN','Guadalupe Mountains':'TX','Haleakalā':'HI',
+  "Hawai'i Volcanoes":'HI','Hot Springs':'AR','Indiana Dunes':'IN','Isle Royale':'MI',
+  'Joshua Tree':'CA','Katmai':'AK','Kenai Fjords':'AK','Kings Canyon':'CA',
+  'Kobuk Valley':'AK','Lake Clark':'AK','Lassen Volcanic':'CA','Mammoth Cave':'KY',
+  'Mesa Verde':'CO','Mount Rainier':'WA','New River Gorge':'WV','North Cascades':'WA',
+  'Olympic':'WA','Petrified Forest':'AZ','Pinnacles':'CA','Redwood':'CA',
+  'Rocky Mountain':'CO','Saguaro':'AZ','Sequoia':'CA','Shenandoah':'VA',
+  'Theodore Roosevelt':'ND','Virgin Islands':'VI','Voyageurs':'MN','White Sands':'NM',
+  'Wind Cave':'SD','Wrangell–St. Elias':'AK','Yellowstone':'WY','Yosemite':'CA','Zion':'UT'
+};
+// Elevation/topo color by state — darker = higher elevation average
+// Based on average elevation: high (Mountain West) → warm ochre, medium → muted green-brown, low → dark base
+const STATE_TOPO = {
+  'CO':'#2e2408','UT':'#2a2006','WY':'#2b2207','MT':'#252010','ID':'#222010',
+  'NM':'#27200a','AZ':'#28200a','NV':'#221d08','CA':'#1e1a08','OR':'#1c1908',
+  'WA':'#1c1908','AK':'#1e1c0a','HI':'#1e1a08',
+  'SD':'#1c1608','ND':'#1b1508','NE':'#1a1508','KS':'#1a1508','OK':'#1a1508',
+  'TX':'#1b1608','MN':'#191508','WI':'#181408','MI':'#181408','IA':'#181408',
+  'MO':'#191508','AR':'#191508','LA':'#171308','MS':'#171308','AL':'#171308',
+  'TN':'#1a1608','KY':'#1a1608','WV':'#1c1808','VA':'#1b1708','NC':'#1a1608',
+  'SC':'#181408','GA':'#181408','FL':'#171308',
+  'IL':'#181408','IN':'#181408','OH':'#181408','PA':'#1b1708','NY':'#1b1708',
+  'ME':'#191608','NH':'#191608','VT':'#191608','MA':'#181508','RI':'#171408',
+  'CT':'#171408','NJ':'#171408','DE':'#161308','MD':'#191608',
+};
+
+// Mountain range overlay polygons (approximate SVG coords after AlbersUSA projection)
+// These are rough bounding shapes for visual topographic feel
+const MOUNTAIN_RANGES = [
+  // Rockies (CO/WY/MT/ID)
+  {points:'580,140 640,140 680,200 700,280 670,350 620,390 570,370 540,290 545,210', color:'rgba(120,90,30,0.13)', label:'Rockies'},
+  // Sierra Nevada (CA)
+  {points:'155,230 185,200 200,260 210,320 195,370 165,360 148,300', color:'rgba(100,80,25,0.12)', label:'Sierra Nevada'},
+  // Cascades (WA/OR)
+  {points:'135,100 165,90 178,150 170,210 145,220 128,165', color:'rgba(90,75,20,0.11)', label:'Cascades'},
+  // Appalachians (VA/WV/NC/TN)
+  {points:'740,240 780,220 810,260 820,320 790,360 755,340 730,290', color:'rgba(80,70,20,0.10)', label:'Appalachians'},
+  // Wasatch/Uinta (UT)
+  {points:'540,280 575,265 590,310 575,350 545,345 530,310', color:'rgba(110,85,25,0.10)', label:'Wasatch'},
+  // Alaska Range
+  {points:'95,65 200,55 230,85 210,110 130,115 80,95', color:'rgba(100,85,25,0.09)', label:'Alaska Range'},
+];
+
+let selectedStateFips = null;
+let mapSpencerOn = true;
+let stateFeatures = null;
+
+function initMap() {
+  const svg = d3.select('#map-svg');
+  const W = 960, H = 600;
+  projection = d3.geoAlbersUsa().scale(1100).translate([W/2 - 30, H/2 + 20]);
+  pathGen = d3.geoPath().projection(projection);
+
+  fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json')
+    .then(r => r.json())
+    .then(us => {
+      stateFeatures = topojson.feature(us, us.objects.states).features;
+      svg.select('#states-g').selectAll('path')
+        .data(stateFeatures)
+        .enter().append('path')
+        .attr('class','state-path')
+        .attr('d', pathGen)
+        .style('cursor','pointer')
+        .on('click', function(event, d) {
+          const fips = String(d.id).padStart(2,'0');
+          const abbr = FIPS_TO_STATE[fips];
+          if (!abbr) return;
+          if (selectedStateFips === fips) {
+            clearStateSelection();
+          } else {
+            selectState(fips, abbr, d);
+          }
+        })
+        .on('mouseover', function(event, d) {
+          const fips = String(d.id).padStart(2,'0');
+          if (fips !== selectedStateFips) {
+            d3.select(this).style('fill', '#2e2812');
+          }
+        })
+        .on('mouseout', function(event, d) {
+          const fips = String(d.id).padStart(2,'0');
+          const abbr = FIPS_TO_STATE[fips];
+          if (fips !== selectedStateFips) {
+            d3.select(this).style('fill', null);
+          }
+        });
+
+      renderParks();
+    }).catch(() => renderParks());
+}
+
+function lighten(hex) {
+  // Add ~10% brightness to a hex color for hover
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return `rgb(${Math.min(r+18,255)},${Math.min(g+16,255)},${Math.min(b+8,255)})`;
+}
+
+function selectState(fips, abbr, feature) {
+  selectedStateFips = fips;
+  const svg = d3.select('#map-svg');
+
+  // Clear previous highlight and topo
+  svg.select('#state-highlight-g').selectAll('*').remove();
+  svg.select('#topo-g').selectAll('*').remove();
+
+  svg.select('#states-g').selectAll('path').each(function(d) {
+    const f = String(d.id).padStart(2,'0');
+    if (f === fips) {
+      // Fill with topo elevation color for this state
+      const topoColor = STATE_TOPO[abbr] || '#1e1a08';
+      d3.select(this).style('fill', topoColor);
+
+      // Gold selection border on top
+      svg.select('#state-highlight-g').append('path')
+        .datum(d)
+        .attr('d', pathGen)
+        .attr('fill', 'rgba(200,168,75,0.08)')
+        .attr('stroke', 'rgba(200,168,75,0.75)')
+        .attr('stroke-width', 1.5)
+        .attr('pointer-events', 'none');
+    }
+  });
+
+  // Draw mountain range overlays that are relevant to this state
+  const tg = svg.select('#topo-g');
+  MOUNTAIN_RANGES.forEach(range => {
+    if (!range.states || range.states.includes(abbr)) {
+      tg.append('polygon')
+        .attr('points', range.points)
+        .attr('fill', range.color)
+        .attr('stroke', 'none')
+        .attr('pointer-events', 'none');
+    }
+  });
+
+  // Show banner
+  const parksInState = PARKS.filter(p => PARK_STATES[p.name] === abbr);
+  const banner = document.getElementById('state-banner');
+  banner.textContent = `${STATE_NAMES[abbr] || abbr} — ${parksInState.length} park${parksInState.length!==1?'s':''}`;
+  banner.style.display = 'block';
+
+  // Show state park list in panel
+  showStatePanel(abbr, parksInState);
+}
+
+function clearStateSelection() {
+  // Reset ALL state fills to CSS default (safety sweep)
+  d3.select('#states-g').selectAll('path').style('fill', null);
+  selectedStateFips = null;
+  d3.select('#state-highlight-g').selectAll('*').remove();
+  d3.select('#topo-g').selectAll('*').remove();
+  document.getElementById('state-banner').style.display = 'none';
+  document.getElementById('side-panel').classList.remove('open');
+  document.getElementById('park-detail').style.display = 'none';
+  document.getElementById('empty-state').style.display = 'flex';
+}
+
+function showStatePanel(abbr, parks) {
+  document.getElementById('empty-state').style.display = 'none';
+  const detail = document.getElementById('park-detail');
+  detail.style.display = 'block';
+
+  const sorted = parks.slice().sort((a,b) => b.visitors2024 - a.visitors2024);
+  detail.innerHTML = `
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border3)">
+      <div>
+        <div class="park-title">${STATE_NAMES[abbr]}</div>
+        <span class="visited-badge badge-v" style="margin-top:6px">${parks.length} National Park${parks.length!==1?'s':''}</span>
+      </div>
+      <button class="panel-close" onclick="clearStateSelection()">✕</button>
+    </div>
+    ${sorted.map(p => `
+      <div onclick="openPanel(PARKS.find(x=>x.name==='${p.name.replace(/'/g,"\\'")}')); clearStateBanner()" style="cursor:pointer;padding:10px 12px;background:var(--bg);border:1px solid var(--border3);border-radius:2px;margin-bottom:8px;transition:border-color .15s" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='var(--border3)'">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div style="font-family:var(--serif);font-size:13px;${mapSpencerOn && p.visited ? 'color:var(--gold)' : 'color:var(--text)'};font-weight:600">${p.name}</div>
+          ${mapSpencerOn && p.visited ? `<span class="pill-yes" style="font-size:8px;padding:1px 6px;flex-shrink:0;margin-left:6px">✓ Visited</span>` : ''}
+        </div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text4);margin-top:3px">${p.category} · ${fmt(p.visitors2024)} visitors/yr · ${p.days} day${p.days==='1'?'':'s'}</div>
+        ${mapSpencerOn && p.visited && p.again===true ? '<div style="font-family:var(--mono);font-size:9px;color:var(--green);margin-top:2px">↩ Would return</div>' : ''}
+        ${mapSpencerOn && p.visited && p.again===false ? '<div style="font-family:var(--mono);font-size:9px;color:var(--text4);margin-top:2px">One & done</div>' : ''}
+      </div>`).join('')}
+    <div style="margin-top:12px;text-align:center">
+      <button class="fbtn" onclick="clearStateSelection()" style="width:100%">← Back to full map</button>
+    </div>`;
+  document.getElementById('side-panel').classList.add('open');
+}
+
+function clearStateBanner() {
+  document.getElementById('state-banner').style.display = 'none';
+}
+window.clearStateBanner = clearStateBanner;
+window.clearStateSelection = clearStateSelection;
+
+function toggleMapSpencer(wrapper) {
+  mapSpencerOn = !mapSpencerOn;
+  const track = document.getElementById('map-toggle-track');
+  const thumb = document.getElementById('map-toggle-thumb');
+  if (mapSpencerOn) {
+    track.style.background = 'rgba(200,168,75,0.35)';
+    track.style.borderColor = 'rgba(200,168,75,0.3)';
+    thumb.style.background = 'var(--gold)';
+    thumb.style.transform = 'translateX(16px)';
+  } else {
+    track.style.background = 'var(--border2)';
+    track.style.borderColor = 'var(--border2)';
+    thumb.style.background = 'var(--text3)';
+    thumb.style.transform = 'translateX(0)';
+  }
+  // Show/hide stats strip and Spencer's filter group
+  document.getElementById('stats-strip').style.opacity = mapSpencerOn ? '1' : '0.25';
+  document.getElementById('stats-strip').style.pointerEvents = mapSpencerOn ? 'auto' : 'none';
+  document.getElementById('fg-spencers').style.opacity = mapSpencerOn ? '1' : '0.35';
+  document.getElementById('fg-spencers').style.pointerEvents = mapSpencerOn ? 'auto' : 'none';
+  // If turning off and a Spencer filter is active, reset to all
+  if (!mapSpencerOn) {
+    const spencersFilters = ['visited','unvisited','again'];
+    if (spencersFilters.includes(currentFilter)) {
+      currentFilter = 'all';
+      document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
+      const allBtn = document.querySelector('#fc-spencers .fbtn');
+      if (allBtn) allBtn.classList.add('active');
+    }
+  }
+  renderParks();
+  if (selectedStateFips) {
+    const abbr = FIPS_TO_STATE[selectedStateFips];
+    if (abbr) showStatePanel(abbr, PARKS.filter(p => PARK_STATES[p.name] === abbr));
+  }
+}
+window.toggleMapSpencer = toggleMapSpencer;
+
+function toggleFilterGroup(id) {
+  const children = document.getElementById('fc-' + id);
+  const btn = document.getElementById('fp-' + id);
+  const isOpen = children.style.display !== 'none';
+  children.style.display = isOpen ? 'none' : 'flex';
+  btn.classList.toggle('open', !isOpen);
+  // If opening categories, close spencers sub-filters and vice versa (optional UX)
+}
+window.toggleFilterGroup = toggleFilterGroup;
+
+function getVisible(p) {
+  if (currentFilter === 'all') return true;
+  if (currentFilter === 'visited') return p.visited;
+  if (currentFilter === 'unvisited') return !p.visited;
+  if (currentFilter === 'again') return p.again === true;
+  if (currentFilter === 'backcountry') return p.backcountry === true;
+  // Category filters — exact match on category field
+  const catMap = {
+    desert:'Desert', mountains:'Mountains', coastal:'Coastal',
+    water:'Water', volcanic:'Volcanic', wildlife:'Wildlife',
+    caves:'Caves', cultural:'Cultural', wetlands:'Wetlands'
+  };
+  if (catMap[currentFilter]) return p.category === catMap[currentFilter];
+  return true;
+}
+
+// Parks outside AlbersUSA projection get manual inset positions (x,y in SVG coords)
+const INSET_POSITIONS = {
+  'Virgin Islands':  {x: 910, y: 480},
+  'American Samoa':  {x: 60,  y: 540},
+};
+
+function renderParks() {
+  const g = d3.select('#parks-g');
+  g.selectAll('*').remove();
+  const tip = document.getElementById('tooltip');
+  const mapArea = document.querySelector('.map-area');
+  const svgEl = document.getElementById('map-svg');
+
+  // Draw small inset label boxes for off-map parks
+  const insetParks = PARKS.filter(p => INSET_POSITIONS[p.name]);
+  insetParks.forEach(park => {
+    const pos = INSET_POSITIONS[park.name];
+    const vis = getVisible(park);
+    const grp = g.append('g').attr('opacity', vis ? 1 : 0.08).style('pointer-events', vis ? 'auto' : 'none');
+    // small box
+    grp.append('rect').attr('x', pos.x - 28).attr('y', pos.y - 9).attr('width', 56).attr('height', 18)
+      .attr('rx', 2).attr('fill', '#1a1508').attr('stroke', mapSpencerOn && park.visited ? '#c8a84b' : '#4a3e1a').attr('stroke-width', 0.8);
+    grp.append('circle').attr('cx', pos.x - 20).attr('cy', pos.y).attr('r', 3.5)
+      .attr('fill', mapSpencerOn && park.visited ? '#c8a84b' : '#4a4030');
+    grp.append('text').attr('x', pos.x - 13).attr('y', pos.y + 4).attr('font-size', 7.5)
+      .attr('font-family', "'Courier Prime', monospace").attr('fill', mapSpencerOn && park.visited ? '#c8a84b' : '#7a6a40')
+      .text(park.name.split(' ').slice(-1)[0]);
+    grp.style('cursor', 'pointer')
+      .on('mouseover', () => { tip.style.opacity = '1'; tip.textContent = park.name; })
+      .on('mousemove', () => {
+        const svgR = svgEl.getBoundingClientRect();
+        const mapR = mapArea.getBoundingClientRect();
+        const sx = svgR.width / 960, sy = svgR.height / 600;
+        tip.style.left = (pos.x * sx + (svgR.left - mapR.left) + 12) + 'px';
+        tip.style.top = (pos.y * sy + (svgR.top - mapR.top) - 10) + 'px';
+      })
+      .on('mouseout', () => { tip.style.opacity = '0'; })
+      .on('click', () => { tip.style.opacity = '0'; openPanel(park); });
+  });
+
+  PARKS.forEach(park => {
+    if (INSET_POSITIONS[park.name]) return; // handled above
+    const coords = projection([park.lng, park.lat]);
+    if (!coords) return;
+    const vis = getVisible(park);
+    const grp = g.append('g');
+    const r = park.visited ? 6 : 4.5;
+
+    grp.append('circle')
+      .attr('cx', coords[0]).attr('cy', coords[1]).attr('r', r)
+      .attr('class', `park-dot ${mapSpencerOn && park.visited ? 'visited' : 'not-visited'}${!vis ? ' hidden' : ''}`)
+      .on('mouseover', () => { tip.style.opacity = '1'; tip.textContent = park.name; })
+      .on('mousemove', () => {
+        const svgR = svgEl.getBoundingClientRect();
+        const mapR = mapArea.getBoundingClientRect();
+        const sx = svgR.width / 960, sy = svgR.height / 600;
+        tip.style.left = (coords[0]*sx + (svgR.left - mapR.left) + 12) + 'px';
+        tip.style.top = (coords[1]*sy + (svgR.top - mapR.top) - 10) + 'px';
+      })
+      .on('mouseout', () => { tip.style.opacity = '0'; })
+      .on('click', () => { tip.style.opacity = '0'; openPanel(park); });
+
+    if (park.visited || currentFilter === 'unvisited' || currentFilter === 'all') {
+      grp.append('text')
+        .attr('x', coords[0]).attr('y', coords[1] - 9)
+        .attr('text-anchor', 'middle')
+        .attr('class', `park-lbl ${mapSpencerOn && park.visited ? 'visited' : ''}${!vis ? ' hidden' : ''}`)
+        .text(park.name.split(' ').slice(-1)[0].length > 10 ? park.name.split(' ').slice(-1)[0].substring(0,9)+'…' : park.name.split(' ').slice(-1)[0]);
+    }
+  });
+}
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  // Clear all fbtn active states
+  document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  // Set parent group active state based on which group the button is in
+  const spencersFilters = ['all','visited','unvisited','again'];
+  document.getElementById('fp-spencers').classList.toggle('active', spencersFilters.includes(f));
+  document.getElementById('fp-categories').classList.toggle('active', !spencersFilters.includes(f));
+  renderParks();
+}
+
+function fmt(n) { return n >= 1000000 ? (n/1000000).toFixed(2)+'M' : n >= 1000 ? Math.round(n/1000)+'K' : n.toLocaleString(); }
+
+function openPanel(park) {
+  document.getElementById('empty-state').style.display = 'none';
+  const detail = document.getElementById('park-detail');
+  detail.style.display = 'block';
+
+  const showPersonal = mapSpencerOn;
+
+  const againHtml = park.again === true
+    ? `<div class="vpill vpill-yes">Would Return</div>`
+    : park.again === false
+    ? `<div class="vpill vpill-no">One & Done</div>`
+    : `<div class="vpill vpill-no">Not Yet Visited</div>`;
+
+  const memHtml = park.memories !== null
+    ? `<div class="memories-row"><div class="mem-dot ${park.memories?'dot-y':'dot-n'}"></div><span class="mem-txt">${park.memories?'Clear memories of this visit':'Memories are hazy'}</span></div>` : '';
+
+  const mustDoHtml = park.visited && park.mustDo && park.mustDo.length && park.again !== false
+    ? `<div class="section-lbl">Must Do</div>
+       <div class="must-do-block">${park.mustDo.map(m=>`<div class="must-do-item"><span class="checkmark">✓</span><span>${m}</span></div>`).join('')}</div>` : '';
+
+  const todoHtml = park.todo && park.todo.length && park.again !== false
+    ? `<div class="section-lbl">${showPersonal && park.visited?'Still on the List':'To Do'}</div>
+       <div class="todo-block">${park.todo.map(t=>`<div class="todo-item"><span class="todo-bullet">○</span><span>${t}</span></div>`).join('')}</div>` : '';
+
+  const attractionsHtml = park.attractions
+    ? `<div class="section-lbl">Primary Attractions</div>
+       <div class="tags">${park.attractions.split(',').map(a=>`<span class="tag">${a.trim()}</span>`).join('')}
+       <span class="tag category-tag">${park.category}</span></div>` : `<div class="tags"><span class="tag category-tag">${park.category}</span></div>`;
+
+  const seasonHtml = park.bestSeason
+    ? `<div class="section-lbl">Best Season</div><div class="season-row"><span class="season-tag" style="background:rgba(200,168,75,.08);border-color:rgba(200,168,75,.3);color:var(--gold3)">${park.bestSeason}</span></div>` : '';
+
+  const convoHtml = park.convo
+    ? `<div class="section-lbl">Conversation Starter</div>
+       <div class="convo-starter"><p>${park.convo}</p></div>` : '';
+
+  detail.innerHTML = `
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px">
+      <div style="flex:1">
+        <button class="panel-close" onclick="closePanel()">✕</button>
+        <div class="park-title">${park.name}</div>
+        ${showPersonal ? `<span class="visited-badge ${park.visited?'badge-v':'badge-nv'}">${park.visited?'Visited':'Not Yet Visited'}</span>` : ''}
+      </div>
+    </div>
+    <div class="info-grid">
+      <div class="icard"><div class="icard-lbl">2024 Visitors</div><div class="icard-val">${fmt(park.visitors2024)}</div></div>
+      <div class="icard"><div class="icard-lbl">Days recommended</div><div class="icard-val">${park.days}</div></div>
+      <div class="icard"><div class="icard-lbl">Accessible by car</div><div class="icard-val ${park.car?'':'muted'}">${park.car?'Yes':'No'}</div></div>
+      <div class="icard"><div class="icard-lbl">Category</div><div class="icard-val">${park.category}</div></div>
+    </div>
+    ${showPersonal && park.visited ? `<div class="verdict-row">${againHtml}</div>${memHtml}` : ''}
+    ${attractionsHtml}
+    ${seasonHtml}
+    ${showPersonal ? mustDoHtml : ''}
+    ${todoHtml}
+    ${convoHtml}
+  `;
+  document.getElementById('side-panel').classList.add('open');
+}
+
+function closePanel() {
+  document.getElementById('side-panel').classList.remove('open');
+  document.getElementById('park-detail').style.display = 'none';
+  document.getElementById('empty-state').style.display = 'flex';
+}
+window.setFilter = setFilter;
+window.closePanel = closePanel;
+
+// ─── TABLE ────────────────────────────────────────────────────────────────────
+const maxVisitors = Math.max(...PARKS.map(p => p.visitors2024));
+
+function applyTableFilters() {
+  return PARKS.filter(p => {
+    const matchSearch = p.name.toLowerCase().includes(tableSearch.toLowerCase());
+    const matchVisited = tableVisitedFilter === 'all' ||
+      (tableVisitedFilter === 'visited' && p.visited) ||
+      (tableVisitedFilter === 'unvisited' && !p.visited) ||
+      (tableVisitedFilter === 'again' && p.again === true);
+    const matchCat = tableCategoryFilter === 'all' || p.category === tableCategoryFilter;
+    return matchSearch && matchVisited && matchCat;
+  });
+}
+
+function renderTable() {
+  const data = applyTableFilters().sort((a,b) => {
+    let av = a[sortKey], bv = b[sortKey];
+    if (typeof av === 'string') { av = av.toLowerCase(); bv = (bv||'').toLowerCase(); }
+    if (av === null) av = sortDir === 'asc' ? Infinity : -Infinity;
+    if (bv === null) bv = sortDir === 'asc' ? Infinity : -Infinity;
+    if (typeof av === 'boolean') { av = av ? 1 : 0; bv = bv ? 1 : 0; }
+    return sortDir === 'asc' ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1);
+  });
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = data.map(p => {
+    const pct = Math.round((p.visitors2024/maxVisitors)*100);
+    const yn = (v) => v === true ? '<span class="pill-yes">Yes</span>' : v === false ? '<span class="pill-no">No</span>' : '<span style="color:var(--text4);font-size:11px">—</span>';
+    return `<tr>
+      <td class="td-park ${p.visited?'visited-row':''}" onclick="showMap('${p.name}')" style="cursor:pointer">${p.name}</td>
+      <td><div class="bar-cell">${p.visitors2024.toLocaleString()}<div class="vis-bar"><div class="vis-fill" style="width:${pct}%"></div></div></div></td>
+      <td>${yn(p.visited)}</td>
+      <td>${yn(p.again)}</td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${p.days}</td>
+      <td>${yn(p.backcountry)}</td>
+      <td><span class="tag" style="font-size:10px">${p.category}</span></td>
+      <td>${yn(p.timed)}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('tbl-count').textContent = `Showing ${data.length} of 63 parks`;
+  document.querySelectorAll('th').forEach(th => {
+    th.classList.remove('sort-asc','sort-desc');
+    if (th.getAttribute('onclick') && th.getAttribute('onclick').includes(`'${sortKey}'`)) {
+      th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+    }
+  });
+}
+
+function sortTable(key) {
+  if (sortKey === key) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  else { sortKey = key; sortDir = 'desc'; }
+  renderTable();
+}
+
+function filterTable(v) { tableSearch = v; renderTable(); }
+function filterVisited(v) { tableVisitedFilter = v; renderTable(); }
+function filterCategory(v) { tableCategoryFilter = v; renderTable(); }
+
+function showMap(name) {
+  const mapBtn = document.querySelectorAll('.nav-btn')[0];
+  showPage('map', mapBtn);
+  setTimeout(() => {
+    const park = PARKS.find(p => p.name === name);
+    if (park) openPanel(park);
+  }, 100);
+}
+window.sortTable = sortTable;
+window.filterTable = filterTable;
+window.filterVisited = filterVisited;
+window.filterCategory = filterCategory;
+
+// ─── TRIP PLANNING ───────────────────────────────────────────────────────────
+const CATEGORIES = [
+  {name:'Desert', icon:'🏜️', desc:'Arid landscapes, sandstone, canyons'},
+  {name:'Mountains', icon:'⛰️', desc:'High peaks, alpine terrain, glaciers'},
+  {name:'Coastal', icon:'🌊', desc:'Ocean, beaches, marine ecosystems'},
+  {name:'Water', icon:'💧', desc:'Lakes, rivers, waterfalls, fjords'},
+  {name:'Volcanic', icon:'🌋', desc:'Geothermal, lava fields, calderas'},
+  {name:'Wildlife', icon:'🐻', desc:'Wildlife spectacles, remote wilderness'},
+  {name:'Caves', icon:'🕳️', desc:'Underground cave systems'},
+  {name:'Cultural', icon:'🏛️', desc:'Historic sites, human heritage'},
+  {name:'Wetlands', icon:'🌿', desc:'Swamps, floodplains, river deltas'},
+];
+
+// Park lat/lng for distance calculations
+const PARK_COORDS = {};
+PARKS.forEach(p => { PARK_COORDS[p.name] = {lat: p.lat, lng: p.lng}; });
+
+let userLat = null, userLng = null;
+
+function haversine(lat1, lng1, lat2, lng2) {
+  const R = 3958.8;
+  const dLat = (lat2-lat1)*Math.PI/180;
+  const dLng = (lng2-lng1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function geocodeCity() {
+  const city = document.getElementById('city-input').value.trim();
+  if (!city) return;
+  const status = document.getElementById('geo-status');
+  status.textContent = 'Looking up…';
+  fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1&countrycodes=us`)
+    .then(r => r.json())
+    .then(data => {
+      if (!data.length) { status.textContent = 'City not found. Try "Denver, CO" format.'; return; }
+      userLat = parseFloat(data[0].lat);
+      userLng = parseFloat(data[0].lon);
+      status.textContent = `📍 ${data[0].display_name.split(',').slice(0,2).join(',')}`;
+      renderNearMe();
+    })
+    .catch(() => { status.textContent = 'Lookup failed — check connection.'; });
+}
+
+function renderNearMe() {
+  const maxMiles = parseInt(document.getElementById('radius-select').value);
+  const catFilter = document.getElementById('near-cat-select').value;
+  const results = document.getElementById('near-results');
+
+  if (!userLat) {
+    results.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--border3);border-radius:3px;padding:20px 24px;font-family:var(--mono);font-size:12px;color:var(--text3)">Enter your city above to find parks near you and see driving distances.</div>`;
+    return;
+  }
+
+  let parks = PARKS.map(p => ({
+    ...p,
+    distMiles: Math.round(haversine(userLat, userLng, p.lat, p.lng))
+  })).filter(p => p.distMiles <= maxMiles && (catFilter === 'all' || p.category === catFilter))
+    .sort((a,b) => a.distMiles - b.distMiles);
+
+  if (!parks.length) {
+    results.innerHTML = `<p style="font-family:var(--mono);font-size:12px;color:var(--text4)">No parks found within ${maxMiles} miles. Try expanding the distance.</p>`;
+    return;
+  }
+
+  results.innerHTML = `
+    <div style="margin-bottom:12px;font-family:var(--mono);font-size:11px;color:var(--text3)">${parks.length} park${parks.length!==1?'s':''} within ${maxMiles} miles</div>
+    <div class="near-grid">${parks.map(p => `
+      <div class="near-card" style="cursor:pointer" onclick="jumpToMap('${p.name.replace(/'/g,"\\'")}')">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px">
+          <div class="near-name" style="${p.visited?'color:var(--gold)':''}">${p.name}</div>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--gold3);white-space:nowrap;margin-left:8px">${p.distMiles.toLocaleString()} mi</span>
+        </div>
+        <div class="near-meta">${p.category} · ${fmt(p.visitors2024)}/yr</div>
+        <div class="near-meta" style="margin-top:2px">${p.days} day${p.days==='1'?'':'s'} · ${p.car?'Drive-in':'Fly/boat in'}</div>
+        ${p.bestSeason?`<div class="near-meta" style="margin-top:2px;color:var(--text3)">Best: ${p.bestSeason}</div>`:''}
+        ${p.visited?`<div style="margin-top:4px"><span class="pill-yes" style="font-size:8px">Visited</span>${p.again===true?' <span class="pill-yes" style="font-size:8px">↩ Return</span>':p.again===false?' <span class="pill-no" style="font-size:8px">One &amp; Done</span>':''}</div>`:''}
+      </div>`).join('')}
+    </div>`;
+}
+
+let showSpencerData = true;
+
+function toggleSpencerData(wrapper) {
+  showSpencerData = !showSpencerData;
+  const track = document.getElementById('toggle-track');
+  const thumb = document.getElementById('toggle-thumb');
+  if (showSpencerData) {
+    track.style.background = 'var(--border2)';
+    thumb.style.background = 'var(--text3)';
+    thumb.style.transform = 'translateX(0)';
+  } else {
+    track.style.background = 'rgba(200,168,75,0.35)';
+    thumb.style.background = 'var(--gold)';
+    thumb.style.transform = 'translateX(16px)';
+  }
+  renderExplore(true); // re-render categories only, keep near-me intact
+}
+window.toggleSpencerData = toggleSpencerData;
+
+function renderExplore(categoriesOnly) {
+  if (!categoriesOnly) renderNearMe();
+  const grid = document.getElementById('cat-grid');
+  grid.innerHTML = CATEGORIES.map(cat => {
+    const parks = PARKS.filter(p => p.category === cat.name).sort((a,b) => b.visitors2024 - a.visitors2024);
+    const visited = parks.filter(p => p.visited).length;
+    return `<div class="cat-card" id="cat-${cat.name}">
+      <div class="cat-header" onclick="toggleCat('${cat.name}')">
+        <div style="display:flex;align-items:center">
+          <span class="cat-icon">${cat.icon}</span>
+          <div>
+            <div class="cat-name">${cat.name}</div>
+            <div class="cat-count">${showSpencerData ? `${visited}/${parks.length} visited · ` : ''}${cat.desc}</div>
+          </div>
+        </div>
+        <span class="cat-arrow">▶</span>
+      </div>
+      <div class="cat-body">
+        ${parks.map(p => `<div class="cat-park-row">
+          <div class="cat-park-name ${showSpencerData && p.visited ? 'visited-name' : ''}" style="cursor:pointer" onclick="jumpToMap('${p.name.replace(/'/g,"\\'")}')">
+            ${p.name}
+          </div>
+          <div class="cat-park-stats">
+            <span class="cat-vis">${fmt(p.visitors2024)}</span>
+            ${p.backcountry ? '<span class="tag" style="font-size:9px;padding:2px 6px">BC</span>' : ''}
+            ${showSpencerData && p.visited && p.again===true ? '<span style="color:var(--green);font-size:9px;font-family:var(--mono)">↩</span>' : ''}
+            ${showSpencerData && p.visited ? '<span class="pill-yes" style="font-size:8px;padding:1px 6px">✓</span>' : ''}
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCat(name) {
+  document.getElementById('cat-' + name).classList.toggle('expanded');
+}
+
+function jumpToMap(name) {
+  const mapBtn = document.querySelectorAll('.nav-btn')[0];
+  showPage('map', mapBtn);
+  setTimeout(() => { const p = PARKS.find(x => x.name === name); if(p) openPanel(p); }, 100);
+}
+window.toggleCat = toggleCat;
+window.renderNearMe = renderNearMe;
+window.jumpToMap = jumpToMap;
+window.geocodeCity = geocodeCity;
+
+// ─── COMPARE ──────────────────────────────────────────────────────────────────
+function initCompare() {
+  ['cmp-a','cmp-b'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (sel.options.length > 1) return;
+    PARKS.slice().sort((a,b) => a.name.localeCompare(b.name)).forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.name; opt.textContent = p.name;
+      sel.appendChild(opt);
+    });
+  });
+}
+
+function renderCompare() {
+  const a = PARKS.find(p => p.name === document.getElementById('cmp-a').value);
+  const b = PARKS.find(p => p.name === document.getElementById('cmp-b').value);
+  if (!a || !b) return;
+  const res = document.getElementById('compare-result');
+  const col = (park, other) => {
+    const rows = [
+      ['Category', park.category, other.category],
+      ['2024 Visitors', park.visitors2024.toLocaleString(), other.visitors2024.toLocaleString()],
+      ['Miles from Home', park.miles.toLocaleString(), other.miles.toLocaleString()],
+      ['Days Recommended', park.days, other.days],
+      ['Visited', park.visited ? 'Yes' : 'No', other.visited ? 'Yes' : 'No'],
+      ['Would Return', park.again === true ? 'Yes' : park.again === false ? 'No' : '—', other.again === true ? 'Yes' : other.again === false ? 'No' : '—'],
+      ['Car Accessible', park.car ? 'Yes' : 'No', other.car ? 'Yes' : 'No'],
+      ['Timed Entry', park.timed ? 'Yes' : 'No', other.timed ? 'Yes' : 'No'],
+      ['Good Backcountry', park.backcountry === true ? 'Yes' : park.backcountry === false ? 'No' : '—', other.backcountry === true ? 'Yes' : other.backcountry === false ? 'No' : '—'],
+      ['Best Season', park.bestSeason || '—', other.bestSeason || '—'],
+    ];
+    return `<div class="cmp-col">
+      <div class="cmp-name">${park.name}</div>
+      ${rows.map(r => {
+        const isHigher = (r[1] !== r[2]);
+        return `<div class="cmp-row"><div class="cmp-key">${r[0]}</div><div class="cmp-val ${isHigher?'cmp-highlight':''}">${r[1]}</div></div>`;
+      }).join('')}
+      ${park.convo ? `<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border3)"><div class="section-lbl">Summary</div><p style="font-size:12px;color:var(--text2);line-height:1.6;font-style:italic">${park.convo.substring(0,300)}…</p></div>` : ''}
+    </div>`;
+  };
+  res.innerHTML = `<div class="compare-grid">
+    ${col(a,b)}
+    <div class="vs-divider"><div class="vs-circle">vs</div></div>
+    ${col(b,a)}
+  </div>`;
+}
+window.renderCompare = renderCompare;
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+initMap();
+</script>
+</body>
+</html>
